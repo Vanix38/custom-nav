@@ -58,6 +58,7 @@ npm start
   développement, paramètres
 - Page de réglages (menu ☰ ou `Ctrl+,`) : moteurs / IA, page d'accueil, raccourcis, thème, session
 - Navigation privée (menu ☰ ou `Ctrl+Shift+N`), voir ci-dessous
+- Historique (`Ctrl+H`, menu ☰ ou lien en bas de la page d'accueil) : pages visitées groupées par jour, recherche, suppression d'une page, d'une sélection ou d'une période. Rien n'est enregistré en navigation privée ; conservé 90 jours dans `history.json`
 - Outils de développement (les DevTools de Chrome) ancrés à droite de la page : `F12`, `Ctrl+Shift+I`,
   menu ☰, ou clic droit > « Inspecter l'élément »
 - Favoris : étoile dans la barre d'adresse, barre de favoris, dossiers, import depuis Chrome / Edge / Brave, voir ci-dessous
@@ -214,6 +215,7 @@ utilisateur de l'app (`%APPDATA%custom-navsettings.json`).
 | `Ctrl+W` | Fermer l'onglet |
 | `Ctrl+L` | Aller à la barre d'adresse |
 | `Ctrl+,` | Réglages |
+| `Ctrl+H` | Historique |
 | `F5` / `Ctrl+R` | Recharger |
 | `Alt+←` / `Alt+→` | Précédent / suivant |
 | `Ctrl+Tab` / `Ctrl+Shift+Tab` | Onglet suivant / précédent |

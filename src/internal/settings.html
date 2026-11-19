@@ -114,13 +114,15 @@
       <h2>Session et données</h2>
       <label class="check"><input type="checkbox" id="restore-tabs" />
         Rouvrir les onglets du dernier lancement</label>
-      <p class="help">Les connexions aux sites (cookies) sont toujours conservées entre les lancements.</p>
+      <p class="help">Les connexions aux sites (cookies) sont toujours conservées entre les lancements.
+        L'historique des pages visitées (hors navigation privée) se gère dans la page
+        <a href="customnav://history/">Historique</a> (<kbd>Ctrl+H</kbd>).</p>
       <div class="row">
         <button type="button" id="clear-data" class="danger">Effacer les données de navigation…</button>
       </div>
       <div class="confirm" id="clear-confirm" hidden>
         <p>Effacer les cookies, le cache et les données des sites ? Tu seras déconnecté de tous les
-          sites (Claude, Google…). Les réglages et les onglets ne sont pas touchés.</p>
+          sites (Claude, Google…). Les réglages, les onglets et l'historique ne sont pas touchés.</p>
         <div class="row">
           <button type="button" id="clear-yes" class="danger primary">Oui, tout effacer</button>
           <button type="button" id="clear-no">Annuler</button>

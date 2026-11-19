@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld('nav', {
   setChromeHeight: (px) => ipcRenderer.send('ui:chrome-height', px),
   setTitlebarColors: (color, symbolColor) => ipcRenderer.send('ui:titlebar-colors', color, symbolColor),
   openSettings: () => ipcRenderer.send('ui:open-settings'),
+  openHistory: () => ipcRenderer.send('ui:open-history'),
   newPrivateWindow: () => ipcRenderer.send('ui:new-private-window'),
   appMenu: (x, y) => ipcRenderer.send('ui:app-menu', x, y),
   openExtensions: () => ipcRenderer.send('ui:open-extensions'),
