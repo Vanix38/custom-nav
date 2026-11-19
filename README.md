@@ -52,6 +52,23 @@ npm start
 - Connexions conservées entre les lancements (session persistante `persist:main`)
 - Page d'accueil interne pour les nouveaux onglets : grande barre de recherche, pastilles moteurs / IA et favoris
 - Page de réglages (bouton ⚙ ou `Ctrl+,`) : moteurs / IA, page d'accueil, favoris, thème, session
+- Navigation privée (bouton lunettes ou `Ctrl+Shift+N`), voir ci-dessous
+
+### Navigation privée
+
+`Ctrl+Shift+N` (ou le bouton lunettes à droite de la barre d'adresse) ouvre une
+**fenêtre privée**, reconnaissable à sa teinte violette, au badge « Navigation privée » dans la barre
+d'onglets et au titre de la fenêtre.
+
+- Chaque fenêtre privée a sa propre session **en mémoire uniquement** (pas de préfixe `persist:`) :
+  cookies, connexions, cache et stockage des sites ne sont jamais écrits sur le disque, ne sont pas
+  partagés avec la fenêtre normale ni avec les autres fenêtres privées, et sont vidés dès la
+  fermeture de la fenêtre.
+- Ses onglets ne sont **pas enregistrés** ni rouverts au lancement suivant (seule la fenêtre normale
+  l'est). Les nouveaux onglets privés ouvrent toujours la page d'accueil Custom Nav.
+- Les réglages (moteur actif, liste des moteurs, thème…) restent communs : les modifier depuis une
+  fenêtre privée les enregistre comme d'habitude.
+- `Ctrl+N` ramène la fenêtre normale (ou la rouvre si elle a été fermée).
 
 ### Sélecteur moteurs de recherche / IA
 
@@ -100,6 +117,8 @@ utilisateur de l'app (`%APPDATA%custom-navsettings.json`).
 | Raccourci | Action |
 | --- | --- |
 | `Ctrl+T` | Nouvel onglet |
+| `Ctrl+Shift+N` | Nouvelle fenêtre privée |
+| `Ctrl+N` | Revenir à la fenêtre normale (la rouvre si elle est fermée) |
 | `Ctrl+W` | Fermer l'onglet |
 | `Ctrl+L` | Aller à la barre d'adresse |
 | `Ctrl+,` | Réglages |
@@ -115,7 +134,7 @@ utilisateur de l'app (`%APPDATA%custom-navsettings.json`).
 ```
 src/
   main/
-    main.js      fenêtre principale, raccourcis, IPC
+    main.js      fenêtres (normale et privées), raccourcis, IPC
     tabs.js      gestion des onglets (un WebContentsView par onglet)
     search.js    liste des moteurs / IA, validation, transformation saisie → URL
     config.js    réglages (valeurs par défaut, validation, session)

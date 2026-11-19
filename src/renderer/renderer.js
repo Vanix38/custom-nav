@@ -8,6 +8,13 @@ const backBtn = $('back');
 const forwardBtn = $('forward');
 const reloadBtn = $('reload');
 
+// Fenêtre privée : main.js charge l'interface avec ?private=1
+const isPrivate = new URLSearchParams(location.search).get('private') === '1';
+if (isPrivate) {
+  document.documentElement.classList.add('private');
+  $('private-badge').hidden = false;
+}
+
 let state = { tabs: [], activeId: null, canGoBack: false, canGoForward: false };
 let addressDirty = false; // l'utilisateur est en train de taper
 
@@ -62,7 +69,8 @@ function render() {
     address.value = active && !active.url.startsWith('customnav://home') ? active.url : '';
     addressDirty = false;
   }
-  document.title = active ? `${active.title} – Custom Nav` : 'Custom Nav';
+  const appName = isPrivate ? 'Custom Nav (navigation privée)' : 'Custom Nav';
+  document.title = active ? `${active.title} – ${appName}` : appName;
 }
 
 window.nav.onState((s) => {
@@ -81,6 +89,7 @@ $('new-tab').addEventListener('click', () => {
   window.nav.newTab();
 });
 $('settings').addEventListener('click', () => window.nav.openSettings());
+$('private-window').addEventListener('click', () => window.nav.newPrivateWindow());
 backBtn.addEventListener('click', () => window.nav.back());
 forwardBtn.addEventListener('click', () => window.nav.forward());
 reloadBtn.addEventListener('click', () => {

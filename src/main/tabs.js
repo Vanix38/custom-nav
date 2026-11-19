@@ -37,10 +37,11 @@ function injectScript({ selector, text }) {
 const toTarget = (t) => (typeof t === 'string' ? { url: t } : t);
 
 class TabManager extends EventEmitter {
-  constructor(win, { topOffset, getHomeUrl, onWebContentsCreated }) {
+  constructor(win, { topOffset, partition = PARTITION, getHomeUrl, onWebContentsCreated }) {
     super();
     this.win = win;
     this.topOffset = topOffset;
+    this.partition = partition;
     this.getHomeUrl = getHomeUrl;
     this.onWebContentsCreated = onWebContentsCreated;
     this.tabs = new Map(); // id -> { id, view, title, url, favicon, loading, query }
@@ -55,7 +56,7 @@ class TabManager extends EventEmitter {
     const { url = this.getHomeUrl(), inject, query = null } = toTarget(target || {});
     const view = new WebContentsView({
       webPreferences: {
-        partition: PARTITION,
+        partition: this.partition,
         preload: PRELOAD, // n'expose rien aux sites web, voir internal-preload.js
         contextIsolation: true,
         nodeIntegration: false,

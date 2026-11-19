@@ -35,6 +35,31 @@
   }
 }
 
+/* Fenêtre privée : teinte violette + badge dans la barre d'onglets */
+:root.private {
+  --bg: #221c30;
+  --bg-tab: #2f2742;
+  --bg-tab-active: #3d3356;
+  --bg-input: #18131f;
+  --hover: #4e4268;
+  --hover-tab: #372e4c;
+  --accent: #b18cff;
+  --private: #d4bfff;
+}
+
+@media (prefers-color-scheme: light) {
+  :root.private {
+    --bg: #dcd5ee;
+    --bg-tab: #cbc1e4;
+    --bg-tab-active: #f3effc;
+    --bg-input: #ffffff;
+    --hover: #d6cdee;
+    --hover-tab: #e6e0f5;
+    --accent: #7349d6;
+    --private: #5b2fc2;
+  }
+}
+
 * { box-sizing: border-box; }
 
 html, body {
@@ -148,6 +173,22 @@ html, body {
 .icon-btn:hover:not(:disabled) { background: var(--hover); }
 .icon-btn:disabled { color: var(--muted); cursor: default; }
 #new-tab { margin-bottom: 3px; }
+
+#private-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 4px 7px auto;
+  padding: 3px 10px;
+  flex: none;
+  border-radius: 12px;
+  background: var(--bg-tab-active);
+  color: var(--private);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+#private-badge[hidden] { display: none; }
 
 #address-form {
   flex: 1;
