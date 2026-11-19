@@ -17,6 +17,7 @@ if (location.protocol === 'customnav:') {
     setRestoreTabs: (on) => call('set-restore-tabs', on),
     setFavorites: (list) => call('set-favorites', list),
     clearBrowsingData: () => call('clear-browsing-data'),
+    newPrivateWindow: () => call('new-private-window'),
     // recherche depuis la page d'accueil (newTab : ouvrir dans un nouvel onglet)
     search: (text, engineId, newTab) => call('search', text, engineId, newTab),
     open: (url) => call('open', url),

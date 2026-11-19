@@ -75,4 +75,12 @@ document.getElementById('search-form').addEventListener('submit', (e) => {
 });
 
 api.onConfig((c) => { cfg = c; render(); });
-api.getConfig().then((c) => { cfg = c; render(); });
+api.getConfig().then((c) => {
+  cfg = c;
+  if (c.isPrivate) {
+    document.documentElement.classList.add('private');
+    document.getElementById('private-note').hidden = false;
+    document.title = 'Nouvel onglet privé';
+  }
+  render();
+});
