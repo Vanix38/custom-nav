@@ -4,6 +4,7 @@ const { TabManager, PARTITION } = require('./tabs');
 const { getEngines, getEngine, iconFor, buildEngineTarget, resolveInput, isHttpUrl } = require('./search');
 const internal = require('./internal');
 const config = require('./config');
+const history = require('./history');
 
 // Hauteur initiale de l'interface ; l'interface envoie ensuite sa vraie hauteur.
 const CHROME_HEIGHT = 80;
@@ -89,6 +90,10 @@ function openSettings(ctx) {
   ctx.tabs.focusOrCreate(config.SETTINGS_PAGE);
 }
 
+function openHistory(ctx) {
+  ctx.tabs.focusOrCreate(config.HISTORY_PAGE);
+}
+
 function newTab(ctx) {
   ctx.tabs.create();
   ctx.win.webContents.focus();
@@ -135,6 +140,8 @@ function handleShortcuts(webContents) {
       sendToUi(ctx, 'ui:focus-address');
     } else if (ctrl && key === ',') {
       openSettings(ctx);
+    } else if (ctrl && !input.shift && key === 'h') {
+      openHistory(ctx);
     } else if (key === 'f5' || (ctrl && key === 'r')) {
       tabs.reload();
     } else if (input.alt && key === 'arrowleft') {
@@ -237,6 +244,14 @@ function createWindow({ isPrivate = false, restore = true } = {}) {
     if (!isPrivate) saveSessionSoon();
   });
 
+  // Historique : seulement la fenêtre normale, rien n'est écrit en navigation privée
+  if (!isPrivate) {
+    tabs.on('visit', (tab, { inPage }) => {
+      tab.historyId = history.addVisit(tab.url, inPage ? tab.title : '');
+    });
+    tabs.on('title', (tab) => history.setTitle(tab.historyId, tab.url, tab.title));
+  }
+
   handleShortcuts(win.webContents);
   win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'), {
     query: isPrivate ? { private: '1' } : {},
@@ -288,6 +303,7 @@ ipcMain.on('ui:chrome-height', fromUi(({ tabs }, px) => {
   if (Number.isFinite(px) && px > 0) tabs.setTopOffset(Math.round(px));
 }));
 ipcMain.on('ui:open-settings', fromUi((ctx) => openSettings(ctx)));
+ipcMain.on('ui:open-history', fromUi((ctx) => openHistory(ctx)));
 ipcMain.on('ui:new-private-window', fromUi(() => createWindow({ isPrivate: true })));
 ipcMain.on('engines:set-active', fromUi((_ctx, id) => setActiveEngine(id)));
 ipcMain.on('engines:resend', fromUi((ctx, id, typed) => resendTo(ctx, id, typed)));
@@ -307,6 +323,9 @@ const INTERNAL_ACTIONS = {
     return r;
   },
   'set-favorites': (list) => config.setFavorites(list),
+  'history-list': (opts) => history.list(opts || {}),
+  'history-remove': (ids) => history.remove(ids),
+  'history-clear': (range) => history.clear(range),
   'clear-browsing-data': async () => {
     const ses = session.fromPartition(PARTITION);
     await ses.clearStorageData(); // cookies, localStorage, IndexedDB, service workers…
@@ -338,7 +357,8 @@ ipcMain.handle('internal', async (event, action, ...args) => {
   if (action === 'open') {
     const url = String(args[0] || '');
     if (!isHttpUrl(url)) return { error: 'Adresse invalide.' };
-    tabs.navigate(url, tab || undefined);
+    if (args[1] || !tab) tabs.create(url, { activate: args[1] !== 'background' });
+    else tabs.navigate(url, tab);
     return {};
   }
 
@@ -358,6 +378,8 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
+
+app.on('before-quit', () => history.saveNow());
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();

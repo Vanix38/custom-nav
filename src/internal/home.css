@@ -124,13 +124,18 @@ h1 {
   font-size: 13px;
 }
 
-#settings-link {
+#corner-links {
   position: fixed;
   right: 16px;
   bottom: 14px;
+  display: flex;
+  gap: 18px;
+}
+
+#corner-links a {
   color: var(--fg-dim);
   text-decoration: none;
   font-size: 13px;
 }
 
-#settings-link:hover { color: var(--fg); }
+#corner-links a:hover { color: var(--fg); }

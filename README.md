@@ -53,6 +53,7 @@ npm start
 - Page d'accueil interne pour les nouveaux onglets : grande barre de recherche, pastilles moteurs / IA et favoris
 - Page de réglages (bouton ⚙ ou `Ctrl+,`) : moteurs / IA, page d'accueil, favoris, thème, session
 - Navigation privée (bouton lunettes ou `Ctrl+Shift+N`), voir ci-dessous
+- Historique (`Ctrl+H`, ou lien en bas de la page d'accueil) : pages visitées groupées par jour, recherche, suppression d'une page, d'une sélection ou d'une période. Rien n'est enregistré en navigation privée ; conservé 90 jours dans `history.json`
 
 ### Navigation privée
 
@@ -122,6 +123,7 @@ utilisateur de l'app (`%APPDATA%custom-navsettings.json`).
 | `Ctrl+W` | Fermer l'onglet |
 | `Ctrl+L` | Aller à la barre d'adresse |
 | `Ctrl+,` | Réglages |
+| `Ctrl+H` | Historique |
 | `F5` / `Ctrl+R` | Recharger |
 | `Alt+←` / `Alt+→` | Précédent / suivant |
 | `Ctrl+Tab` / `Ctrl+Shift+Tab` | Onglet suivant / précédent |

@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('nav', {
   onFocusAddress: (cb) => ipcRenderer.on('ui:focus-address', () => cb()),
   setChromeHeight: (px) => ipcRenderer.send('ui:chrome-height', px),
   openSettings: () => ipcRenderer.send('ui:open-settings'),
+  openHistory: () => ipcRenderer.send('ui:open-history'),
   newPrivateWindow: () => ipcRenderer.send('ui:new-private-window'),
 
   // moteurs de recherche / IA

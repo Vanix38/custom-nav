@@ -74,16 +74,23 @@ class TabManager extends EventEmitter {
       this.emitState();
     };
 
-    wc.on('page-title-updated', (_e, title) => update({ title }));
+    wc.on('page-title-updated', (_e, title) => {
+      update({ title });
+      this.emit('title', tab);
+    });
     wc.on('page-favicon-updated', (_e, favicons) => update({ favicon: favicons[0] || null }));
     wc.on('did-start-loading', () => update({ loading: true }));
     wc.on('did-stop-loading', () => update({ loading: false }));
-    wc.on('did-navigate', (_e, navUrl) => {
+    wc.on('did-navigate', (_e, navUrl, httpCode) => {
       // Mémorise la question si la page est une page de résultats connue
       update({ url: navUrl, favicon: null, query: extractQuery(navUrl) || tab.query });
+      // pas de page d'erreur réseau (code <= 0) dans l'historique
+      if (httpCode > 0) this.emit('visit', tab, { inPage: false });
     });
     wc.on('did-navigate-in-page', (_e, navUrl, isMainFrame) => {
-      if (isMainFrame) update({ url: navUrl, query: extractQuery(navUrl) || tab.query });
+      if (!isMainFrame) return;
+      update({ url: navUrl, query: extractQuery(navUrl) || tab.query });
+      this.emit('visit', tab, { inPage: true }); // le titre courant vaut encore pour la page
     });
     wc.on('did-fail-load', (_e, code, desc, failedUrl, isMainFrame) => {
       if (isMainFrame && code !== -3 /* ABORTED */) {

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self' https: data:; style-src 'self'; script-src 'self'" />
+  <title>Historique</title>
+  <link rel="stylesheet" href="common.css" />
+  <link rel="stylesheet" href="history.css" />
+</head>
+<body>
+  <main>
+    <header class="top">
+      <h1>Historique</h1>
+      <input type="search" id="filter" placeholder="Rechercher dans l'historique…"
+             aria-label="Rechercher dans l'historique" autocomplete="off" spellcheck="false" autofocus />
+    </header>
+
+    <p class="help" id="private-note" hidden>
+      Tu es dans une fenêtre privée : les pages que tu y ouvres ne sont pas enregistrées dans l'historique.
+    </p>
+
+    <div class="row toolbar">
+      <div id="selection-bar" class="row" hidden>
+        <span id="selection-count"></span>
+        <button type="button" id="delete-selected" class="danger primary">Supprimer</button>
+        <button type="button" id="cancel-selection">Annuler</button>
+      </div>
+      <span class="spacer"></span>
+      <button type="button" id="clear-open" class="danger">Effacer l'historique…</button>
+    </div>
+
+    <div class="confirm" id="clear-confirm" hidden>
+      <div class="row">
+        <label for="clear-range">Effacer les pages visitées :</label>
+        <select id="clear-range">
+          <option value="hour">dans la dernière heure</option>
+          <option value="day">ces dernières 24 heures</option>
+          <option value="week">ces 7 derniers jours</option>
+          <option value="month">ces 30 derniers jours</option>
+          <option value="all" selected>depuis toujours</option>
+        </select>
+      </div>
+      <p class="help">Seul l'historique est effacé : les cookies, connexions et onglets ne sont pas touchés
+        (pour ceux-là, voir Réglages › Session et données).</p>
+      <div class="row">
+        <button type="button" id="clear-yes" class="danger primary">Effacer</button>
+        <button type="button" id="clear-no">Annuler</button>
+      </div>
+    </div>
+
+    <p class="status" id="status" role="status"></p>
+    <div id="list" aria-label="Pages visitées"></div>
+    <div class="row more-row">
+      <button type="button" id="more" hidden>Afficher plus</button>
+    </div>
+    <p class="hint">Clic : ouvrir ici · Ctrl+clic ou clic molette : nouvel onglet en arrière-plan · Shift+clic : nouvel onglet</p>
+  </main>
+  <script src="history.js"></script>
+</body>
+</html>

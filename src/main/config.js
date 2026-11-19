@@ -5,6 +5,7 @@ const search = require('./search');
 
 const HOME_PAGE = 'customnav://home/';
 const SETTINGS_PAGE = 'customnav://settings/';
+const HISTORY_PAGE = 'customnav://history/';
 
 const DEFAULT_FAVORITES = [
   { name: 'YouTube', url: 'https://www.youtube.com/' },
@@ -114,7 +115,7 @@ function saveSession(session) {
 }
 
 module.exports = {
-  HOME_PAGE, SETTINGS_PAGE, load, getConfig, homeUrl,
+  HOME_PAGE, SETTINGS_PAGE, HISTORY_PAGE, load, getConfig, homeUrl,
   setEngines, resetEngines, setActiveEngine, setHomepage, setTheme, setRestoreTabs, setFavorites,
   getLastSession, saveSession,
 };

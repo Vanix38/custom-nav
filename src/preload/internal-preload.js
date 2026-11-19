@@ -20,7 +20,12 @@ if (location.protocol === 'customnav:') {
     newPrivateWindow: () => call('new-private-window'),
     // recherche depuis la page d'accueil (newTab : ouvrir dans un nouvel onglet)
     search: (text, engineId, newTab) => call('search', text, engineId, newTab),
-    open: (url) => call('open', url),
+    // newTab : true (nouvel onglet) ou 'background' (sans l'afficher)
+    open: (url, newTab) => call('open', url, newTab),
+    // historique de navigation
+    historyList: (opts) => call('history-list', opts),
+    historyRemove: (ids) => call('history-remove', ids),
+    historyClear: (range) => call('history-clear', range),
     onConfig: (cb) => ipcRenderer.on('internal:config', (_e, config) => cb(config)),
   });
 }
