@@ -64,7 +64,7 @@ class TabManager extends EventEmitter {
       },
     });
     const id = this.nextId++;
-    const tab = { id, view, title: 'Nouvel onglet', url, favicon: null, loading: true, query };
+    const tab = { id, view, title: 'Nouvel onglet', url, favicon: null, loading: true, query, blocked: 0 };
     this.tabs.set(id, tab);
     this.order.push(id);
 
@@ -77,6 +77,10 @@ class TabManager extends EventEmitter {
     wc.on('page-title-updated', (_e, title) => update({ title }));
     wc.on('page-favicon-updated', (_e, favicons) => update({ favicon: favicons[0] || null }));
     wc.on('did-start-loading', () => update({ loading: true }));
+    // compteur du bloqueur de pub : remis à zéro à chaque nouvelle page
+    wc.on('did-start-navigation', (d) => {
+      if (d.isMainFrame && !d.isSameDocument) tab.blocked = 0;
+    });
     wc.on('did-stop-loading', () => update({ loading: false }));
     wc.on('did-navigate', (_e, navUrl) => {
       // Mémorise la question si la page est une page de résultats connue
@@ -226,7 +230,7 @@ class TabManager extends EventEmitter {
       canGoForward: !!h && h.canGoForward(),
       tabs: this.order.map((id) => {
         const t = this.tabs.get(id);
-        return { id: t.id, title: t.title, url: t.url, favicon: t.favicon, loading: t.loading, query: t.query };
+        return { id: t.id, title: t.title, url: t.url, favicon: t.favicon, loading: t.loading, query: t.query, blocked: t.blocked };
       }),
     };
   }
@@ -244,6 +248,19 @@ class TabManager extends EventEmitter {
     for (const tab of this.tabs.values()) {
       const wc = tab.view.webContents;
       if (!wc.isDestroyed() && isInternalUrl(wc.getURL())) wc.send(channel, payload);
+    }
+  }
+
+  // Une requête de cet onglet vient d'être bloquée (état envoyé au plus 4 fois/s)
+  countBlocked(webContents) {
+    const tab = this.tabFor(webContents);
+    if (!tab) return;
+    tab.blocked += 1;
+    if (!this.blockedTimer) {
+      this.blockedTimer = setTimeout(() => {
+        this.blockedTimer = null;
+        this.emitState();
+      }, 250);
     }
   }
 

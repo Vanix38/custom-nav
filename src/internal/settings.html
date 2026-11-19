@@ -64,6 +64,27 @@
       </div>
     </section>
 
+    <section id="adblock-section">
+      <h2>Bloqueur de publicités</h2>
+      <label class="check"><input type="checkbox" id="adblock-enabled" />
+        Bloquer les publicités et les traqueurs (fenêtres normales et privées)</label>
+      <p class="help">Basé sur le moteur open source de Ghostery et les listes EasyList, EasyPrivacy,
+        uBlock Origin et Liste FR. Le bouclier à droite de la barre d'adresse indique combien d'éléments ont été bloqués sur
+        la page et permet d'autoriser les pubs sur un site qui ne s'affiche pas correctement.</p>
+      <h3>Sites autorisés</h3>
+      <div id="adblock-allowlist"></div>
+      <form class="row" id="adblock-allow-form">
+        <input type="text" id="adblock-host" placeholder="exemple.com" aria-label="Site à autoriser" />
+        <button type="submit">Autoriser ce site</button>
+      </form>
+      <div class="row actions">
+        <span class="help" id="adblock-lists"></span>
+        <span class="spacer"></span>
+        <button type="button" id="adblock-update">Mettre à jour les listes</button>
+      </div>
+      <p class="status" id="adblock-status" role="status"></p>
+    </section>
+
     <section>
       <h2>Session et données</h2>
       <label class="check"><input type="checkbox" id="restore-tabs" />

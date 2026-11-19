@@ -1,11 +1,12 @@
 const path = require('path');
-const { app, BrowserWindow, Menu, clipboard, ipcMain, nativeTheme, session } = require('electron');
+const { app, BrowserWindow, Menu, clipboard, ipcMain, nativeTheme, session, webContents: allWebContents } = require('electron');
 const { TabManager, PARTITION } = require('./tabs');
 const { getEngines, getEngine, iconFor, buildEngineTarget, resolveInput, isHttpUrl } = require('./search');
 const internal = require('./internal');
 const config = require('./config');
 const bookmarks = require('./bookmarks');
 const extensions = require('./extensions');
+const adblock = require('./adblock');
 
 // Hauteur initiale de l'interface ; l'interface envoie ensuite sa vraie hauteur.
 const CHROME_HEIGHT = 80;
@@ -325,6 +326,7 @@ function createWindow({ isPrivate = false, restore = true } = {}) {
       handleContextMenu(wc);
     },
   });
+  adblock.addSession(session.fromPartition(partition)); // pubs bloquées aussi en privé
   const ctx = { win, tabs, isPrivate, partition };
   windows.add(ctx);
   if (!isPrivate) mainCtx = ctx;
@@ -353,6 +355,7 @@ function createWindow({ isPrivate = false, restore = true } = {}) {
       ses.clearStorageData().catch(() => {});
       ses.clearCache().catch(() => {});
       ses.clearAuthCache().catch(() => {});
+      adblock.removeSession(ses);
     }
   });
   return ctx;
@@ -390,6 +393,40 @@ ipcMain.on('ui:chrome-height', fromUi(({ tabs }, px) => {
 }));
 ipcMain.on('ui:open-settings', fromUi((ctx) => openSettings(ctx)));
 ipcMain.on('ui:new-private-window', fromUi(() => createWindow({ isPrivate: true })));
+// --- Bloqueur de pub : bouton bouclier ---
+function adblockChanged() {
+  sendToAllUis('adblock:state', adblock.status());
+  for (const ctx of windows) ctx.tabs.broadcastInternal('internal:adblock', adblock.status());
+}
+
+function adblockMenu(ctx, x, y) {
+  const tab = ctx.tabs.active();
+  const url = tab?.url || '';
+  const host = adblock.hostOf(url);
+  const st = adblock.status();
+  const allowed = host && adblock.isAllowed(url);
+  const reload = () => tab?.view.webContents.reload();
+  const items = [
+    { label: !st.enabled ? 'Bloqueur de pub désactivé' : allowed ? `Pubs autorisées sur ${host}` : `${tab?.blocked || 0} élément(s) bloqué(s) sur cette page`, enabled: false },
+    { type: 'separator' },
+  ];
+  if (host && st.enabled) {
+    items.push(allowed
+      ? { label: `Bloquer à nouveau sur ${host}`, click: () => { adblock.setAllowed(host, false); adblockChanged(); reload(); } }
+      : { label: `Autoriser les pubs sur ${host}`, click: () => { adblock.setAllowed(host, true); adblockChanged(); reload(); } });
+  }
+  items.push(
+    st.enabled
+      ? { label: 'Désactiver le bloqueur partout', click: () => { adblock.setEnabled(false); adblockChanged(); reload(); } }
+      : { label: 'Activer le bloqueur', click: () => { adblock.setEnabled(true); adblockChanged(); reload(); } },
+    { type: 'separator' },
+    { label: 'Réglages du bloqueur…', click: () => ctx.tabs.focusOrCreate(config.SETTINGS_PAGE) },
+  );
+  Menu.buildFromTemplate(items).popup({ window: ctx.win, x: Math.round(x), y: Math.round(y) });
+}
+
+ipcMain.handle('adblock:get-state', fromUi(() => adblock.status()));
+ipcMain.on('adblock:menu', fromUi((ctx, x, y) => adblockMenu(ctx, x, y)));
 ipcMain.on('ui:open-extensions', fromUi((ctx) => ctx.tabs.focusOrCreate(config.EXTENSIONS_PAGE)));
 ipcMain.on('engines:set-active', fromUi((_ctx, id) => setActiveEngine(id)));
 ipcMain.on('engines:resend', fromUi((ctx, id, typed) => resendTo(ctx, id, typed)));
@@ -446,6 +483,11 @@ const INTERNAL_ACTIONS = {
   'extensions-list': () => extensions.list(),
   'extensions-remove': (id) => extensions.remove(String(id)),
   'extensions-update': () => extensions.checkUpdates(),
+  // bloqueur de pub (réglages)
+  'adblock-status': () => adblock.status(),
+  'adblock-set-enabled': (on) => adblock.setEnabled(on),
+  'adblock-set-allowed': (host, allowed) => adblock.setAllowed(String(host || ''), !!allowed),
+  'adblock-update': () => adblock.updateLists(),
   'clear-browsing-data': async () => {
     const ses = session.fromPartition(PARTITION);
     await ses.clearStorageData(); // cookies, localStorage, IndexedDB, service workers…
@@ -497,6 +539,7 @@ ipcMain.handle('internal', async (event, action, ...args) => {
   if (!fn) throw new Error(`Action inconnue : ${action}`);
   const result = await fn(...args);
   if (CHANGES_CONFIG.has(action) && !result?.error) configChanged();
+  if (action.startsWith('adblock-') && action !== 'adblock-status' && !result?.error) adblockChanged();
   if (action.startsWith('bookmarks-') && action !== 'bookmarks-get' && action !== 'bookmarks-import-sources' && !result?.error) {
     bookmarksChanged();
   }
@@ -584,6 +627,14 @@ app.whenReady().then(async () => {
   internal.handleProtocol(session.fromPartition(PARTITION));
   applyTheme();
   // avant la première fenêtre : les extensions doivent connaître tous les onglets
+  // le moteur se charge en arrière-plan (cache disque, sinon téléchargement) ;
+  // les sessions déjà ouvertes sont protégées dès qu'il est prêt
+  adblock.init({
+    onBlockedRequest(webContentsId) {
+      const wc = allWebContents.fromId(webContentsId);
+      if (wc) ctxFor(wc)?.tabs.countBlocked(wc);
+    },
+  }).then(adblockChanged);
   await extensions.init(PARTITION, extensionImpl);
   extensions.onChange(extensionsChanged);
   createWindow();

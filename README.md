@@ -72,6 +72,25 @@ npm start
 
 Les tuiles sous la recherche de la page d'accueil sont des **raccourcis** à part, réglables dans les réglages.
 
+### Bloqueur de publicités intégré
+
+Activé par défaut, dans les fenêtres normales **et** privées. Il repose sur le moteur open source de
+[Ghostery](https://github.com/ghostery/adblocker) (`@ghostery/adblocker-electron`, licence MPL-2.0) avec les
+listes EasyList, EasyPrivacy, filtres uBlock Origin, Peter Lowe et Liste FR :
+
+- blocage des requêtes de pub et de traqueurs, et masquage des emplacements de pub dans les pages
+  (filtres cosmétiques) ;
+- le **bouclier** à droite de la barre d'adresse affiche le nombre d'éléments bloqués sur la page ; un clic
+  ouvre un menu pour **autoriser les pubs sur ce site** (utile si un site ne s'affiche pas bien ou refuse les
+  bloqueurs), désactiver le bloqueur partout, ou ouvrir ses réglages ;
+- dans les réglages (section « Bloqueur de publicités ») : activer / désactiver, liste des sites autorisés,
+  mise à jour manuelle des listes. Les listes sont téléchargées au premier lancement, compilées et mises en
+  cache dans `%APPDATA%\custom-nav\adblock-engine.bin`, puis rafraîchies tous les 3 jours. Sans réseau, le
+  cache existant est utilisé.
+
+Limites : certains sites détectent les bloqueurs et demandent de les désactiver ; les pubs YouTube
+dépendent de scripts que YouTube change souvent, le blocage peut y être imparfait.
+
 ### Extensions Chrome
 
 Le bouton pièce de puzzle (à droite de la barre d'adresse) ouvre `customnav://extensions/` : liste des
@@ -92,7 +111,7 @@ electron-chrome-web-store. Electron n'est pas Chrome : beaucoup d'API d'extensio
 | Extension | Résultat |
 | --- | --- |
 | Dark Reader | fonctionne (bouton, popup, pages assombries) |
-| uBlock Origin Lite | s'installe mais **ne bloque rien** : `declarativeNetRequest` n'existe pas dans Electron, et son service worker plante (`chrome.commands` absent) |
+| uBlock Origin Lite | s'installe mais **ne bloque rien** : `declarativeNetRequest` n'existe pas dans Electron, et son service worker plante (`chrome.commands` absent). Utiliser le bloqueur intégré à la place. |
 
 Ne fonctionnent pas non plus : les autres bloqueurs de pub Manifest V3 (même API), `chrome.identity` (connexion
 Google), `chrome.history`, `chrome.bookmarks`, `chrome.downloads`, les captures d'onglet et le remplacement de la
@@ -188,6 +207,7 @@ src/
     config.js    réglages (valeurs par défaut, validation, session)
     bookmarks.js favoris (arbre liens / dossiers, import Chrome / Edge / Brave)
     extensions.js extensions Chrome et Chrome Web Store (session normale uniquement)
+    adblock.js   bloqueur de pub intégré (moteur Ghostery, toutes les sessions)
     settings.js  lecture / écriture de settings.json
     internal.js  protocole customnav:// des pages internes
   preload/

@@ -276,6 +276,24 @@ html, body {
 
 #address:focus { border-color: var(--accent); }
 
+/* --- Bloqueur de pub --- */
+#adblock { position: relative; color: var(--accent); }
+#adblock.off { color: var(--muted); }
+#adblock-count {
+  position: absolute;
+  right: 0;
+  bottom: 1px;
+  min-width: 14px;
+  padding: 0 3px;
+  border-radius: 7px;
+  background: var(--accent);
+  color: var(--bg-input);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 13px;
+}
+#adblock-count[hidden] { display: none; }
+
 /* --- Boutons des extensions --- */
 #extension-actions {
   display: flex;
