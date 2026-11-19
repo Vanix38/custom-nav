@@ -34,6 +34,15 @@ if (location.protocol === 'customnav:') {
       setShowBar: (on) => call('bookmarks-set-show-bar', on),
       onChange: (cb) => ipcRenderer.on('internal:bookmarks', (_e, state) => cb(state)),
     },
+    // extensions Chrome
+    extensions: {
+      list: () => call('extensions-list'),
+      remove: (id) => call('extensions-remove', id),
+      checkUpdates: () => call('extensions-update'),
+      openWebStore: () => call('open-web-store'),
+      openOptions: (id) => call('open-extension-options', id),
+      onChange: (cb) => ipcRenderer.on('internal:extensions', (_e, list) => cb(list)),
+    },
     onConfig: (cb) => ipcRenderer.on('internal:config', (_e, config) => cb(config)),
   });
 }

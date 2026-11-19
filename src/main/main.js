@@ -1,10 +1,11 @@
 const path = require('path');
-const { app, BrowserWindow, Menu, ipcMain, nativeTheme, session } = require('electron');
+const { app, BrowserWindow, Menu, clipboard, ipcMain, nativeTheme, session } = require('electron');
 const { TabManager, PARTITION } = require('./tabs');
 const { getEngines, getEngine, iconFor, buildEngineTarget, resolveInput, isHttpUrl } = require('./search');
 const internal = require('./internal');
 const config = require('./config');
 const bookmarks = require('./bookmarks');
+const extensions = require('./extensions');
 
 // Hauteur initiale de l'interface ; l'interface envoie ensuite sa vraie hauteur.
 const CHROME_HEIGHT = 80;
@@ -303,17 +304,26 @@ function createWindow({ isPrivate = false, restore = true } = {}) {
       preload: path.join(__dirname, '..', 'preload', 'ui-preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true,
+      // L'interface (fichier local, jamais de contenu web) a besoin d'un preload
+      // non sandboxé pour charger <browser-action-list> depuis node_modules.
+      // Les onglets, eux, restent sandboxés.
+      sandbox: false,
     },
   });
   win.setMenu(null);
+  // L'interface ne doit jamais quitter index.html
+  win.webContents.on('will-navigate', (e) => e.preventDefault());
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
 
   const tabs = new TabManager(win, {
     topOffset: CHROME_HEIGHT,
     partition,
     // en privé, toujours la page d'accueil interne (elle affiche le bandeau « privé »)
     getHomeUrl: () => (isPrivate ? config.HOME_PAGE : config.homeUrl()),
-    onWebContentsCreated: handleShortcuts,
+    onWebContentsCreated: (wc) => {
+      handleShortcuts(wc);
+      handleContextMenu(wc);
+    },
   });
   const ctx = { win, tabs, isPrivate, partition };
   windows.add(ctx);
@@ -323,6 +333,10 @@ function createWindow({ isPrivate = false, restore = true } = {}) {
     sendToUi(ctx, 'tabs:state', state);
     if (!isPrivate) saveSessionSoon();
   });
+  // Les onglets de la session normale sont visibles des extensions (chrome.tabs)
+  tabs.on('tab-created', (tab) => extensions.addTab(tab.view.webContents, win));
+  tabs.on('tab-activated', (tab) => extensions.selectTab(tab.view.webContents));
+  tabs.on('tab-closed', (tab) => extensions.removeTab(tab.view.webContents));
 
   handleShortcuts(win.webContents);
   win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'), {
@@ -376,6 +390,7 @@ ipcMain.on('ui:chrome-height', fromUi(({ tabs }, px) => {
 }));
 ipcMain.on('ui:open-settings', fromUi((ctx) => openSettings(ctx)));
 ipcMain.on('ui:new-private-window', fromUi(() => createWindow({ isPrivate: true })));
+ipcMain.on('ui:open-extensions', fromUi((ctx) => ctx.tabs.focusOrCreate(config.EXTENSIONS_PAGE)));
 ipcMain.on('engines:set-active', fromUi((_ctx, id) => setActiveEngine(id)));
 ipcMain.on('engines:resend', fromUi((ctx, id, typed) => resendTo(ctx, id, typed)));
 ipcMain.handle('tabs:get-state', fromUi(({ tabs }) => tabs.getState()));
@@ -427,6 +442,10 @@ const INTERNAL_ACTIONS = {
   'bookmarks-import-sources': () => bookmarks.importSources(),
   'bookmarks-import': (browserId) => bookmarks.importFrom(browserId),
   'bookmarks-set-show-bar': (on) => config.setShowBookmarksBar(on),
+  // extensions (customnav://extensions/)
+  'extensions-list': () => extensions.list(),
+  'extensions-remove': (id) => extensions.remove(String(id)),
+  'extensions-update': () => extensions.checkUpdates(),
   'clear-browsing-data': async () => {
     const ses = session.fromPartition(PARTITION);
     await ses.clearStorageData(); // cookies, localStorage, IndexedDB, service workers…
@@ -444,6 +463,18 @@ ipcMain.handle('internal', async (event, action, ...args) => {
   const tab = tabs.tabFor(event.sender);
 
   if (action === 'get-config') return { ...internalConfig(), isPrivate: ctx.isPrivate };
+  if (action === 'open-web-store') {
+    if (ctx.isPrivate) openNormalWindow();
+    (mainCtx || ctx).tabs.create(extensions.WEB_STORE_URL);
+    return {};
+  }
+  if (action === 'open-extension-options') {
+    const ext = extensions.list().find((x) => x.id === args[0]);
+    if (!ext?.optionsUrl) return { error: "Cette extension n'a pas de page d'options." };
+    if (ctx.isPrivate) openNormalWindow();
+    (mainCtx || ctx).tabs.create(ext.optionsUrl);
+    return {};
+  }
   if (action === 'new-private-window') {
     createWindow({ isPrivate: true });
     return {};
@@ -472,10 +503,89 @@ ipcMain.handle('internal', async (event, action, ...args) => {
   return result;
 });
 
-app.whenReady().then(() => {
+// --- Extensions : ce que chrome.tabs / chrome.windows font dans Custom Nav ---
+function tabFromWebContents(wc) {
+  const ctx = ctxFor(wc);
+  const tab = ctx?.tabs.tabFor(wc);
+  return ctx && tab ? { ctx, tab } : null;
+}
+
+// Ouvre une URL d'extension dans la fenêtre normale (rouverte si besoin)
+function createTabForExtension(details = {}) {
+  const ctx = mainCtx || createWindow({ restore: false });
+  const url = typeof details.url === 'string' && details.url ? details.url : config.homeUrl();
+  const id = ctx.tabs.create(url, { activate: details.active !== false });
+  return [ctx.tabs.tabs.get(id).view.webContents, ctx.win];
+}
+
+const extensionImpl = {
+  createTab: async (details) => createTabForExtension(details),
+  selectTab(wc) {
+    const t = tabFromWebContents(wc);
+    if (t) t.ctx.tabs.activate(t.tab.id);
+  },
+  removeTab(wc) {
+    const t = tabFromWebContents(wc);
+    if (t) t.ctx.tabs.close(t.tab.id);
+  },
+  // une seule fenêtre normale : chrome.windows.create ouvre un onglet dedans
+  createWindow: async (details = {}) => {
+    const urls = Array.isArray(details.url) ? details.url : [details.url];
+    let win = mainCtx?.win;
+    for (const url of urls) [, win] = createTabForExtension({ url });
+    return win || mainCtx.win;
+  },
+  removeWindow() {
+    // on ne laisse pas une extension fermer la fenêtre principale
+  },
+};
+
+function extensionsChanged() {
+  for (const ctx of windows) ctx.tabs.broadcastInternal('internal:extensions', extensions.list());
+}
+
+// Clic droit dans une page : lien, édition, sélection + éléments des extensions
+function handleContextMenu(webContents) {
+  webContents.on('context-menu', (_e, params) => {
+    const ctx = ctxFor(webContents);
+    if (!ctx) return;
+    const items = [];
+    if (params.linkURL && isHttpUrl(params.linkURL)) {
+      items.push(
+        { label: 'Ouvrir le lien dans un nouvel onglet', click: () => ctx.tabs.create(params.linkURL, { activate: false }) },
+        { label: "Copier l'adresse du lien", click: () => clipboard.writeText(params.linkURL) },
+      );
+    }
+    if (params.isEditable) {
+      if (items.length) items.push({ type: 'separator' });
+      items.push({ role: 'undo', label: 'Annuler' }, { type: 'separator' },
+        { role: 'cut', label: 'Couper' }, { role: 'copy', label: 'Copier' },
+        { role: 'paste', label: 'Coller' }, { role: 'selectAll', label: 'Tout sélectionner' });
+    } else if (params.selectionText) {
+      if (items.length) items.push({ type: 'separator' });
+      items.push({ role: 'copy', label: 'Copier' });
+    }
+    if (!items.length) {
+      items.push(
+        { label: 'Précédent', enabled: webContents.navigationHistory.canGoBack(), click: () => webContents.navigationHistory.goBack() },
+        { label: 'Suivant', enabled: webContents.navigationHistory.canGoForward(), click: () => webContents.navigationHistory.goForward() },
+        { label: 'Recharger', click: () => webContents.reload() },
+      );
+    }
+    const extItems = extensions.contextMenuItems(webContents, params);
+    if (extItems.length) items.push({ type: 'separator' }, ...extItems);
+    items.push({ type: 'separator' }, { label: "Inspecter l'élément", click: () => webContents.inspectElement(params.x, params.y) });
+    Menu.buildFromTemplate(items).popup({ window: ctx.win });
+  });
+}
+
+app.whenReady().then(async () => {
   config.load();
   internal.handleProtocol(session.fromPartition(PARTITION));
   applyTheme();
+  // avant la première fenêtre : les extensions doivent connaître tous les onglets
+  await extensions.init(PARTITION, extensionImpl);
+  extensions.onChange(extensionsChanged);
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

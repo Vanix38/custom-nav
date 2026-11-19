@@ -276,6 +276,24 @@ html, body {
 
 #address:focus { border-color: var(--accent); }
 
+/* --- Boutons des extensions --- */
+#extension-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+
+#extension-actions::part(action) {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background-color: transparent;
+}
+
+#extension-actions::part(action):hover { background-color: var(--hover); }
+.icon-btn[hidden] { display: none; }
+
 /* --- Étoile (favori) --- */
 #star { font-size: 18px; color: var(--fg-dim); }
 #star[aria-pressed="true"] { color: var(--accent); }

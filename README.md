@@ -72,6 +72,33 @@ npm start
 
 Les tuiles sous la recherche de la page d'accueil sont des **raccourcis** à part, réglables dans les réglages.
 
+### Extensions Chrome
+
+Le bouton pièce de puzzle (à droite de la barre d'adresse) ouvre `customnav://extensions/` : liste des
+extensions installées, options, suppression, recherche de mises à jour, et un lien vers le Chrome Web Store.
+
+- Sur le **Chrome Web Store**, le bouton « Ajouter à Chrome » (affiché « Ajouter à Custom Nav » ou similaire)
+  installe l'extension après une confirmation qui résume ses autorisations. Le Store affiche aussi un bandeau
+  « Passez à Chrome » : il peut être ignoré. Seules les extensions **Manifest V3** sont acceptées.
+- Les boutons des extensions apparaissent à droite de la barre d'adresse (clic = popup de l'extension).
+- Les éléments ajoutés au **clic droit** par les extensions apparaissent dans le menu contextuel des pages
+  (qui propose aussi : ouvrir le lien dans un nouvel onglet, copier, coller, inspecter…).
+- Mises à jour automatiques au lancement puis toutes les 5 heures. Fichiers dans `%APPDATA%\custom-nav\Extensions`.
+- **Aucune extension en navigation privée.**
+
+Tout repose sur [electron-chrome-extensions](https://github.com/samuelmaddock/electron-browser-shell) et
+electron-chrome-web-store. Electron n'est pas Chrome : beaucoup d'API d'extensions manquent. Constaté lors des tests :
+
+| Extension | Résultat |
+| --- | --- |
+| Dark Reader | fonctionne (bouton, popup, pages assombries) |
+| uBlock Origin Lite | s'installe mais **ne bloque rien** : `declarativeNetRequest` n'existe pas dans Electron, et son service worker plante (`chrome.commands` absent) |
+
+Ne fonctionnent pas non plus : les autres bloqueurs de pub Manifest V3 (même API), `chrome.identity` (connexion
+Google), `chrome.history`, `chrome.bookmarks`, `chrome.downloads`, les captures d'onglet et le remplacement de la
+page Nouvel onglet. Le reste (clic droit, onglets, cookies, notifications, raccourcis) marche plus ou moins selon
+l'extension : à essayer au cas par cas.
+
 ### Navigation privée
 
 `Ctrl+Shift+N` (ou le bouton lunettes à droite de la barre d'adresse) ouvre une
@@ -160,6 +187,7 @@ src/
     search.js    liste des moteurs / IA, validation, transformation saisie → URL
     config.js    réglages (valeurs par défaut, validation, session)
     bookmarks.js favoris (arbre liens / dossiers, import Chrome / Edge / Brave)
+    extensions.js extensions Chrome et Chrome Web Store (session normale uniquement)
     settings.js  lecture / écriture de settings.json
     internal.js  protocole customnav:// des pages internes
   preload/
@@ -168,7 +196,7 @@ src/
   renderer/
     index.html, styles.css, renderer.js   interface (onglets, barre d'outils)
   internal/
-    home.*, settings.*, bookmarks.*, common.css   pages d'accueil, de réglages et de favoris
+    home.*, settings.*, bookmarks.*, extensions.*, common.css   pages internes
 build/        icône (icon.svg source, icon.ico, icon.png)
 scripts/      make-icon.js (génération de l'icône)
 ```
@@ -176,7 +204,8 @@ scripts/      make-icon.js (génération de l'icône)
 Sécurité :
 
 - les pages web tournent sans accès à Node (`nodeIntegration: false`, `contextIsolation: true`,
-  `sandbox: true`) ;
+  `sandbox: true`) ; seule l'interface (fichier local `index.html`, qui ne peut pas naviguer ailleurs) a un
+  preload non sandboxé, pour charger les boutons d'extensions ;
 - l'API des réglages (`window.customNav`) n'est exposée qu'aux pages `customnav://`, et le processus
   principal vérifie à chaque message que l'expéditeur est bien une page interne (cadre principal) ;
 - un site web ne peut pas ouvrir une page `customnav://` (navigation, redirection, cadre ou
