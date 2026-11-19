@@ -41,6 +41,7 @@ class TabManager extends EventEmitter {
     super();
     this.win = win;
     this.topOffset = topOffset;
+    this.leftInset = 0; // place réservée à gauche (barre des messageries)
     this.partition = partition;
     this.getHomeUrl = getHomeUrl;
     this.onWebContentsCreated = onWebContentsCreated;
@@ -205,13 +206,21 @@ class TabManager extends EventEmitter {
   setTopOffset(px) {
     this.topOffset = px;
     this.layout();
+    this.emit('layout');
+  }
+
+  setLeftInset(px) {
+    if (px === this.leftInset) return;
+    this.leftInset = px;
+    this.layout();
   }
 
   layout() {
     const tab = this.active();
     if (!tab) return;
     const [width, height] = this.win.getContentSize();
-    tab.view.setBounds({ x: 0, y: this.topOffset, width, height: Math.max(0, height - this.topOffset) });
+    const x = Math.min(this.leftInset, width);
+    tab.view.setBounds({ x, y: this.topOffset, width: width - x, height: Math.max(0, height - this.topOffset) });
   }
 
   getState() {

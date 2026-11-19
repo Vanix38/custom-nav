@@ -53,6 +53,7 @@ npm start
 - Page d'accueil interne pour les nouveaux onglets : grande barre de recherche, pastilles moteurs / IA et favoris
 - Page de réglages (bouton ⚙ ou `Ctrl+,`) : moteurs / IA, page d'accueil, favoris, thème, session
 - Navigation privée (bouton lunettes ou `Ctrl+Shift+N`), voir ci-dessous
+- Messageries intégrées WhatsApp et Discord dans une barre à gauche, voir ci-dessous
 
 ### Navigation privée
 
@@ -69,6 +70,29 @@ d'onglets et au titre de la fenêtre.
 - Les réglages (moteur actif, liste des moteurs, thème…) restent communs : les modifier depuis une
   fenêtre privée les enregistre comme d'habitude.
 - `Ctrl+N` ramène la fenêtre normale (ou la rouvre si elle a été fermée).
+
+### Messageries (WhatsApp, Discord)
+
+Une barre verticale à gauche de la fenêtre normale affiche une icône par messagerie :
+
+- **Clic** : ouvre la messagerie dans un panneau à côté de la barre (les onglets se décalent) ;
+  nouveau clic, ou `Ctrl+W` dans la messagerie, pour le refermer.
+- **Badge rouge** : nombre de messages non lus (un simple point pour Discord quand il y a des
+  messages sans mention). Le total s'affiche aussi en pastille sur l'icône de la barre des tâches,
+  qui clignote quand un message arrive alors que la fenêtre est en arrière-plan.
+- **Notifications Windows** : un clic sur la notification ramène la fenêtre et ouvre la messagerie.
+- **Clic droit** : recharger, largeur du panneau (étroit, moyen, large, toute la fenêtre),
+  désactiver / réactiver, se déconnecter, masquer la barre.
+- `Ctrl+Shift+M` masque / réaffiche la barre.
+
+Les messageries restent chargées en arrière-plan (panneau fermé) pour recevoir messages et
+notifications ; une messagerie désactivée ne consomme plus rien. Chacune a sa propre session
+persistante (`persist:messenger-whatsapp`, `persist:messenger-discord`) : on reste connecté entre
+les lancements, et « Effacer les données de navigation » ne vous déconnecte pas. Les liens cliqués
+dans une messagerie s'ouvrent dans un onglet normal. La barre n'existe pas dans les fenêtres privées.
+
+Première connexion : WhatsApp demande de scanner un QR code avec le téléphone (WhatsApp >
+Appareils connectés), Discord se connecte par e-mail / mot de passe ou QR code.
 
 ### Sélecteur moteurs de recherche / IA
 
@@ -119,7 +143,8 @@ utilisateur de l'app (`%APPDATA%custom-navsettings.json`).
 | `Ctrl+T` | Nouvel onglet |
 | `Ctrl+Shift+N` | Nouvelle fenêtre privée |
 | `Ctrl+N` | Revenir à la fenêtre normale (la rouvre si elle est fermée) |
-| `Ctrl+W` | Fermer l'onglet |
+| `Ctrl+W` | Fermer l'onglet (dans une messagerie : refermer son panneau) |
+| `Ctrl+Shift+M` | Masquer / afficher la barre des messageries |
 | `Ctrl+L` | Aller à la barre d'adresse |
 | `Ctrl+,` | Réglages |
 | `F5` / `Ctrl+R` | Recharger |
@@ -140,11 +165,15 @@ src/
     config.js    réglages (valeurs par défaut, validation, session)
     settings.js  lecture / écriture de settings.json
     internal.js  protocole customnav:// des pages internes
+    messengers.js  barre et panneaux des messageries (WhatsApp, Discord)
   preload/
     ui-preload.js        API de l'interface (barre d'onglets / d'outils)
     internal-preload.js  API des pages internes (n'existe que sur customnav://)
+    messengers-rail-preload.js  API de la barre des messageries
+    messenger-preload.js  retour au panneau au clic sur une notification
   renderer/
     index.html, styles.css, renderer.js   interface (onglets, barre d'outils)
+    messengers.html, .css, .js            barre des messageries
   internal/
     home.*, settings.*, common.css        pages d'accueil et de réglages
 build/        icône (icon.svg source, icon.ico, icon.png)
