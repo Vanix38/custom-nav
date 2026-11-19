@@ -64,7 +64,7 @@ class TabManager extends EventEmitter {
       },
     });
     const id = this.nextId++;
-    const tab = { id, view, title: 'Nouvel onglet', url, favicon: null, loading: true, query };
+    const tab = { id, view, title: 'Nouvel onglet', url, favicon: null, loading: true, query, blocked: 0 };
     this.tabs.set(id, tab);
     this.order.push(id);
 
@@ -80,6 +80,10 @@ class TabManager extends EventEmitter {
     });
     wc.on('page-favicon-updated', (_e, favicons) => update({ favicon: favicons[0] || null }));
     wc.on('did-start-loading', () => update({ loading: true }));
+    // compteur du bloqueur de pub : remis à zéro à chaque nouvelle page
+    wc.on('did-start-navigation', (d) => {
+      if (d.isMainFrame && !d.isSameDocument) tab.blocked = 0;
+    });
     wc.on('did-stop-loading', () => update({ loading: false }));
     wc.on('did-navigate', (_e, navUrl, httpCode) => {
       // Mémorise la question si la page est une page de résultats connue
@@ -113,6 +117,7 @@ class TabManager extends EventEmitter {
     });
 
     if (this.onWebContentsCreated) this.onWebContentsCreated(wc);
+    this.emit('tab-created', tab); // pour les extensions (chrome.tabs)
 
     this.load(tab, { url, inject });
     if (activate) this.activate(id);
@@ -135,12 +140,17 @@ class TabManager extends EventEmitter {
     if (!tab) return;
     if (this.activeId && this.activeId !== id) {
       const prev = this.tabs.get(this.activeId);
-      if (prev) this.win.contentView.removeChildView(prev.view);
+      if (prev) {
+        this.win.contentView.removeChildView(prev.view);
+        if (prev.devtools) this.win.contentView.removeChildView(prev.devtools);
+      }
     }
     this.activeId = id;
     this.win.contentView.addChildView(tab.view);
+    if (tab.devtools) this.win.contentView.addChildView(tab.devtools);
     this.layout();
     tab.view.webContents.focus();
+    this.emit('tab-activated', tab);
     this.emitState();
   }
 
@@ -151,6 +161,11 @@ class TabManager extends EventEmitter {
     this.order.splice(idx, 1);
     this.tabs.delete(id);
     this.win.contentView.removeChildView(tab.view);
+    if (tab.devtools) {
+      this.win.contentView.removeChildView(tab.devtools);
+      tab.devtools.webContents.close();
+    }
+    this.emit('tab-closed', tab);
     tab.view.webContents.close();
 
     if (this.order.length === 0) {
@@ -166,12 +181,19 @@ class TabManager extends EventEmitter {
     }
   }
 
+  // Ferme plusieurs onglets d'un coup (clic droit sur un onglet)
+  closeMany(ids) {
+    for (const id of ids) if (this.tabs.has(id)) this.close(id);
+  }
+
   active() {
     return this.tabs.get(this.activeId) || null;
   }
 
   tabFor(webContents) {
-    for (const tab of this.tabs.values()) if (tab.view.webContents === webContents) return tab;
+    for (const tab of this.tabs.values()) {
+      if (tab.view.webContents === webContents || tab.devtools?.webContents === webContents) return tab;
+    }
     return null;
   }
 
@@ -218,7 +240,56 @@ class TabManager extends EventEmitter {
     const tab = this.active();
     if (!tab) return;
     const [width, height] = this.win.getContentSize();
-    tab.view.setBounds({ x: 0, y: this.topOffset, width, height: Math.max(0, height - this.topOffset) });
+    const h = Math.max(0, height - this.topOffset);
+    if (tab.devtools) {
+      // outils de développement ancrés à droite de la page, comme dans Chrome
+      const dw = Math.min(Math.max(380, Math.round(width * 0.4)), width - 200);
+      tab.view.setBounds({ x: 0, y: this.topOffset, width: width - dw, height: h });
+      tab.devtools.setBounds({ x: width - dw, y: this.topOffset, width: dw, height: h });
+    } else {
+      tab.view.setBounds({ x: 0, y: this.topOffset, width, height: h });
+    }
+  }
+
+  // --- Outils de développement (Chrome DevTools) de l'onglet ---
+  openDevTools(tab = this.active()) {
+    if (!tab) return null;
+    const wc = tab.view.webContents;
+    if (!tab.devtools) {
+      const view = new WebContentsView();
+      tab.devtools = view;
+      // raccourcis (F12, Ctrl+W…) aussi quand le focus est dans les outils
+      if (this.onWebContentsCreated) this.onWebContentsCreated(view.webContents, { devtools: true });
+      wc.setDevToolsWebContents(view.webContents);
+      wc.openDevTools({ mode: 'detach', activate: true });
+      wc.once('devtools-closed', () => this.closeDevTools(tab));
+      if (tab.id === this.activeId) this.win.contentView.addChildView(view);
+      this.layout();
+    }
+    return tab;
+  }
+
+  closeDevTools(tab = this.active()) {
+    if (!tab?.devtools) return;
+    const view = tab.devtools;
+    tab.devtools = null;
+    this.win.contentView.removeChildView(view);
+    const wc = tab.view.webContents;
+    if (!wc.isDestroyed() && wc.isDevToolsOpened()) wc.closeDevTools();
+    if (!view.webContents.isDestroyed()) view.webContents.close();
+    this.layout();
+  }
+
+  toggleDevTools(tab = this.active()) {
+    if (tab?.devtools) this.closeDevTools(tab);
+    else this.openDevTools(tab);
+  }
+
+  inspectElement(webContents, x, y) {
+    const tab = this.tabFor(webContents);
+    if (!tab) return;
+    this.openDevTools(tab);
+    webContents.inspectElement(x, y);
   }
 
   getState() {
@@ -230,7 +301,7 @@ class TabManager extends EventEmitter {
       canGoForward: !!h && h.canGoForward(),
       tabs: this.order.map((id) => {
         const t = this.tabs.get(id);
-        return { id: t.id, title: t.title, url: t.url, favicon: t.favicon, loading: t.loading, query: t.query };
+        return { id: t.id, title: t.title, url: t.url, favicon: t.favicon, loading: t.loading, query: t.query, blocked: t.blocked };
       }),
     };
   }
@@ -248,6 +319,19 @@ class TabManager extends EventEmitter {
     for (const tab of this.tabs.values()) {
       const wc = tab.view.webContents;
       if (!wc.isDestroyed() && isInternalUrl(wc.getURL())) wc.send(channel, payload);
+    }
+  }
+
+  // Une requête de cet onglet vient d'être bloquée (état envoyé au plus 4 fois/s)
+  countBlocked(webContents) {
+    const tab = this.tabFor(webContents);
+    if (!tab) return;
+    tab.blocked += 1;
+    if (!this.blockedTimer) {
+      this.blockedTimer = setTimeout(() => {
+        this.blockedTimer = null;
+        this.emitState();
+      }, 250);
     }
   }
 

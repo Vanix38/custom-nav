@@ -26,6 +26,43 @@ if (location.protocol === 'customnav:') {
     historyList: (opts) => call('history-list', opts),
     historyRemove: (ids) => call('history-remove', ids),
     historyClear: (range) => call('history-clear', range),
+    // gestionnaire de favoris
+    bookmarks: {
+      get: () => call('bookmarks-get'),
+      addLink: (data) => call('bookmarks-add-link', data),
+      addFolder: (data) => call('bookmarks-add-folder', data),
+      update: (id, data) => call('bookmarks-update', id, data),
+      remove: (id) => call('bookmarks-remove', id),
+      move: (id, parentId, index) => call('bookmarks-move', id, parentId, index),
+      importSources: () => call('bookmarks-import-sources'),
+      importFrom: (browserId) => call('bookmarks-import', browserId),
+      setShowBar: (on) => call('bookmarks-set-show-bar', on),
+      onChange: (cb) => ipcRenderer.on('internal:bookmarks', (_e, state) => cb(state)),
+    },
+    // extensions Chrome
+    extensions: {
+      list: () => call('extensions-list'),
+      remove: (id) => call('extensions-remove', id),
+      checkUpdates: () => call('extensions-update'),
+      openWebStore: () => call('open-web-store'),
+      openOptions: (id) => call('open-extension-options', id),
+      onChange: (cb) => ipcRenderer.on('internal:extensions', (_e, list) => cb(list)),
+    },
+    // bloqueur de pub
+    adblock: {
+      status: () => call('adblock-status'),
+      setEnabled: (on) => call('adblock-set-enabled', on),
+      setAllowed: (host, allowed) => call('adblock-set-allowed', host, allowed),
+      updateLists: () => call('adblock-update'),
+      onChange: (cb) => ipcRenderer.on('internal:adblock', (_e, s) => cb(s)),
+    },
+    // serveur MCP
+    mcp: {
+      status: () => call('mcp-status'),
+      setEnabled: (on) => call('mcp-set-enabled', on),
+      regenerateToken: () => call('mcp-regenerate-token'),
+      onChange: (cb) => ipcRenderer.on('internal:mcp', (_e, s) => cb(s)),
+    },
     onConfig: (cb) => ipcRenderer.on('internal:config', (_e, config) => cb(config)),
   });
 }

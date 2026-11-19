@@ -35,7 +35,7 @@
     <section>
       <h2>Page d'accueil</h2>
       <label class="radio"><input type="radio" name="home-mode" value="internal" />
-        Page d'accueil Custom Nav (recherche + favoris)</label>
+        Page d'accueil Custom Nav (recherche + raccourcis)</label>
       <label class="radio"><input type="radio" name="home-mode" value="url" />
         Une adresse :</label>
       <div class="row indent">
@@ -44,12 +44,13 @@
       </div>
       <p class="status" id="home-status" role="status"></p>
 
-      <h3>Favoris de la page d'accueil</h3>
+      <h3>Raccourcis de la page d'accueil</h3>
+      <p class="help">Les tuiles affichées sous la recherche. Les vrais favoris (étoile, barre de favoris) se gèrent dans <a href="customnav://bookmarks/">Favoris</a> (<kbd>Ctrl+Shift+O</kbd>).</p>
       <div id="fav-list"></div>
       <div class="row actions">
-        <button type="button" id="fav-add">+ Ajouter un favori</button>
+        <button type="button" id="fav-add">+ Ajouter un raccourci</button>
         <span class="spacer"></span>
-        <button type="button" id="fav-save" class="primary">Enregistrer les favoris</button>
+        <button type="button" id="fav-save" class="primary">Enregistrer les raccourcis</button>
       </div>
       <p class="status" id="fav-status" role="status"></p>
     </section>
@@ -60,6 +61,52 @@
         <label><input type="radio" name="theme" value="system" /> Suivre Windows</label>
         <label><input type="radio" name="theme" value="light" /> Clair</label>
         <label><input type="radio" name="theme" value="dark" /> Sombre</label>
+      </div>
+    </section>
+
+    <section id="adblock-section">
+      <h2>Bloqueur de publicités</h2>
+      <label class="check"><input type="checkbox" id="adblock-enabled" />
+        Bloquer les publicités et les traqueurs (fenêtres normales et privées)</label>
+      <p class="help">Basé sur le moteur open source de Ghostery et les listes EasyList, EasyPrivacy,
+        uBlock Origin et Liste FR. Le bouclier à droite de la barre d'adresse indique combien d'éléments ont été bloqués sur
+        la page et permet d'autoriser les pubs sur un site qui ne s'affiche pas correctement.</p>
+      <h3>Sites autorisés</h3>
+      <div id="adblock-allowlist"></div>
+      <form class="row" id="adblock-allow-form">
+        <input type="text" id="adblock-host" placeholder="exemple.com" aria-label="Site à autoriser" />
+        <button type="submit">Autoriser ce site</button>
+      </form>
+      <div class="row actions">
+        <span class="help" id="adblock-lists"></span>
+        <span class="spacer"></span>
+        <button type="button" id="adblock-update">Mettre à jour les listes</button>
+      </div>
+      <p class="status" id="adblock-status" role="status"></p>
+    </section>
+
+    <section id="mcp-section">
+      <h2>Pilotage par une IA (MCP)</h2>
+      <label class="check"><input type="checkbox" id="mcp-enabled" />
+        Autoriser une IA (Claude Code, Claude Desktop…) à piloter Custom Nav</label>
+      <p class="help">Un serveur <a href="https://modelcontextprotocol.io/">MCP</a> local permet à l'IA de lister,
+        ouvrir et fermer des onglets, naviguer, lire le texte des pages, faire des captures, cliquer et remplir des
+        champs, et chercher avec tes moteurs et IA. Il n'écoute que sur ton PC (127.0.0.1), exige le jeton
+        ci-dessous et n'a <b>jamais</b> accès aux fenêtres privées. L'IA agit avec tes connexions : n'active ceci que
+        pour une IA en qui tu as confiance.</p>
+      <div id="mcp-details" hidden>
+        <p class="status" id="mcp-state" role="status"></p>
+        <h3>Claude Code</h3>
+        <div class="row copy-row"><code id="mcp-cmd-code"></code><button type="button" data-copy="mcp-cmd-code">Copier</button></div>
+        <h3>Claude Desktop</h3>
+        <p class="help">Dans Paramètres &gt; Développeur &gt; Modifier la configuration
+          (<code>claude_desktop_config.json</code>), ajoute dans <code>mcpServers</code> (nécessite Node.js) :</p>
+        <div class="row copy-row"><pre id="mcp-cmd-desktop"></pre><button type="button" data-copy="mcp-cmd-desktop">Copier</button></div>
+        <div class="row actions">
+          <span class="help">Adresse : <code id="mcp-url"></code></span>
+          <span class="spacer"></span>
+          <button type="button" id="mcp-regen" class="danger">Changer le jeton</button>
+        </div>
       </div>
     </section>
 

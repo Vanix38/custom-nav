@@ -2,11 +2,18 @@
 // Seule cette API limitée est exposée : pas d'accès à Node dans la page.
 const { contextBridge, ipcRenderer } = require('electron');
 
+// Boutons des extensions Chrome (<browser-action-list>), seulement dans la
+// fenêtre normale : les fenêtres privées n'ont pas d'extensions.
+if (new URLSearchParams(location.search).get('private') !== '1') {
+  require('electron-chrome-extensions/browser-action').injectBrowserAction();
+}
+
 contextBridge.exposeInMainWorld('nav', {
   // onglets / navigation
   newTab: (input) => ipcRenderer.send('tabs:new', input),
   closeTab: (id) => ipcRenderer.send('tabs:close', id),
   activateTab: (id) => ipcRenderer.send('tabs:activate', id),
+  tabContextMenu: (id, x, y) => ipcRenderer.send('tabs:context-menu', id, x, y),
   go: (input) => ipcRenderer.send('nav:go', input),
   back: () => ipcRenderer.send('nav:back'),
   forward: () => ipcRenderer.send('nav:forward'),
@@ -16,14 +23,31 @@ contextBridge.exposeInMainWorld('nav', {
   onState: (cb) => ipcRenderer.on('tabs:state', (_e, state) => cb(state)),
   onFocusAddress: (cb) => ipcRenderer.on('ui:focus-address', () => cb()),
   setChromeHeight: (px) => ipcRenderer.send('ui:chrome-height', px),
+  setTitlebarColors: (color, symbolColor) => ipcRenderer.send('ui:titlebar-colors', color, symbolColor),
   openSettings: () => ipcRenderer.send('ui:open-settings'),
   openHistory: () => ipcRenderer.send('ui:open-history'),
   newPrivateWindow: () => ipcRenderer.send('ui:new-private-window'),
+  appMenu: (x, y) => ipcRenderer.send('ui:app-menu', x, y),
+  openExtensions: () => ipcRenderer.send('ui:open-extensions'),
+  // bloqueur de pub
+  getAdblock: () => ipcRenderer.invoke('adblock:get-state'),
+  onAdblock: (cb) => ipcRenderer.on('adblock:state', (_e, state) => cb(state)),
+  adblockMenu: (x, y) => ipcRenderer.send('adblock:menu', x, y),
 
   // moteurs de recherche / IA
   getEngines: () => ipcRenderer.invoke('engines:get-state'),
   onEngines: (cb) => ipcRenderer.on('engines:state', (_e, state) => cb(state)),
   setEngine: (id) => ipcRenderer.send('engines:set-active', id),
+  // favoris
+  getBookmarks: () => ipcRenderer.invoke('bookmarks:get-state'),
+  onBookmarks: (cb) => ipcRenderer.on('bookmarks:state', (_e, state) => cb(state)),
+  toggleBookmark: () => ipcRenderer.send('bookmarks:toggle'),
+  openBookmark: (id, newTab) => ipcRenderer.send('bookmarks:open', id, newTab),
+  manageBookmarks: () => ipcRenderer.send('bookmarks:manage'),
+  bookmarkFolderMenu: (id, x, y) => ipcRenderer.send('bookmarks:folder-menu', id, x, y),
+  bookmarkOverflowMenu: (ids, x, y) => ipcRenderer.send('bookmarks:overflow-menu', ids, x, y),
+  bookmarkContextMenu: (id, x, y) => ipcRenderer.send('bookmarks:context-menu', id, x, y),
+
   resendTo: (id, fallbackQuery) => ipcRenderer.send('engines:resend', id, fallbackQuery),
   onResendShortcut: (cb) => ipcRenderer.on('ui:resend', (_e, id) => cb(id)),
 });
