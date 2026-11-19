@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self' https: data:; style-src 'self'; script-src 'self'" />
+  <title>Favoris</title>
+  <link rel="stylesheet" href="common.css" />
+  <link rel="stylesheet" href="bookmarks.css" />
+</head>
+<body>
+  <main>
+    <h1>Favoris</h1>
+
+    <section>
+      <div class="row">
+        <input type="search" id="filter" placeholder="Rechercher dans les favoris…" aria-label="Rechercher dans les favoris" />
+        <label class="check"><input type="checkbox" id="show-bar" /> Afficher la barre de favoris
+          <kbd>Ctrl+Shift+B</kbd></label>
+      </div>
+      <p class="help">
+        <kbd>Ctrl+D</kbd> ou l'étoile de la barre d'adresse ajoute (ou retire) la page courante.
+        Les favoris s'enregistrent dès que tu modifies un nom ou une adresse.
+      </p>
+      <div id="tree" role="tree" aria-label="Favoris"></div>
+      <p class="status" id="tree-status" role="status"></p>
+    </section>
+
+    <section>
+      <h2>Ajouter</h2>
+      <form id="add-link" class="row">
+        <input type="text" id="new-title" placeholder="Nom" aria-label="Nom" />
+        <input type="url" id="new-url" placeholder="https://…" aria-label="Adresse" required />
+        <select id="new-parent" aria-label="Dossier"></select>
+        <button type="submit" class="primary">Ajouter le favori</button>
+      </form>
+      <form id="add-folder" class="row">
+        <input type="text" id="folder-title" placeholder="Nom du dossier" aria-label="Nom du dossier" />
+        <select id="folder-parent" aria-label="Dans le dossier"></select>
+        <button type="submit">+ Nouveau dossier</button>
+      </form>
+      <p class="status" id="add-status" role="status"></p>
+    </section>
+
+    <section>
+      <h2>Importer</h2>
+      <p class="help">Copie les favoris du profil par défaut d'un autre navigateur installé sur ce PC
+        dans un dossier « Importés de … ». Rien n'est modifié dans l'autre navigateur.</p>
+      <div class="row" id="import-buttons"></div>
+      <p class="status" id="import-status" role="status"></p>
+    </section>
+  </main>
+  <script src="bookmarks.js"></script>
+</body>
+</html>
