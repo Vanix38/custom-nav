@@ -1,9 +1,10 @@
 const path = require('path');
-const { app, BrowserWindow, ipcMain, nativeTheme, session } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, nativeTheme, session } = require('electron');
 const { TabManager, PARTITION } = require('./tabs');
 const { getEngines, getEngine, iconFor, buildEngineTarget, resolveInput, isHttpUrl } = require('./search');
 const internal = require('./internal');
 const config = require('./config');
+const bookmarks = require('./bookmarks');
 
 // Hauteur initiale de l'interface ; l'interface envoie ensuite sa vraie hauteur.
 const CHROME_HEIGHT = 80;
@@ -95,6 +96,86 @@ function newTab(ctx) {
   sendToUi(ctx, 'ui:focus-address');
 }
 
+// --- Favoris ---
+function bookmarksState() {
+  return { tree: bookmarks.getTree(), showBar: config.getConfig().showBookmarksBar };
+}
+
+// Après chaque modification des favoris : barres et pages internes à jour
+function bookmarksChanged() {
+  const state = bookmarksState();
+  sendToAllUis('bookmarks:state', state);
+  for (const ctx of windows) ctx.tabs.broadcastInternal('internal:bookmarks', state);
+}
+
+// Ctrl+D / étoile : ajoute la page courante aux favoris, ou l'en retire
+function toggleBookmark(ctx) {
+  const tab = ctx.tabs.active();
+  if (!tab || !isHttpUrl(tab.url)) return;
+  if (bookmarks.findByUrl(tab.url)) bookmarks.removeUrl(tab.url);
+  else bookmarks.addLink({ title: tab.title, url: tab.url });
+  bookmarksChanged();
+}
+
+function toggleBookmarksBar() {
+  config.setShowBookmarksBar(!config.getConfig().showBookmarksBar);
+  bookmarksChanged();
+}
+
+function openBookmarksManager(ctx) {
+  ctx.tabs.focusOrCreate(config.BOOKMARKS_PAGE);
+}
+
+function openBookmark(ctx, node, inNewTab) {
+  if (!node || node.type !== 'link' || !isHttpUrl(node.url)) return;
+  if (inNewTab) ctx.tabs.create(node.url, { activate: false });
+  else ctx.tabs.navigate(node.url);
+}
+
+function openAllInFolder(ctx, folder) {
+  for (const n of folder.children) if (n.type === 'link') ctx.tabs.create(n.url, { activate: false });
+}
+
+// Éléments de menu natif pour une liste de favoris (sous-menus pour les dossiers)
+function bookmarkMenuItems(ctx, nodes) {
+  if (nodes.length === 0) return [{ label: '(vide)', enabled: false }];
+  return nodes.map((n) => {
+    const label = (n.title || n.url || '').replace(/&/g, '&&').slice(0, 80);
+    if (n.type === 'folder') {
+      const links = n.children.filter((c) => c.type === 'link').length;
+      return {
+        label,
+        submenu: [
+          ...bookmarkMenuItems(ctx, n.children),
+          ...(links ? [{ type: 'separator' }, { label: `Tout ouvrir (${links})`, click: () => openAllInFolder(ctx, n) }] : []),
+        ],
+      };
+    }
+    return { label: label || n.url, click: (_item, _win, e) => openBookmark(ctx, n, e?.ctrlKey) };
+  });
+}
+
+function popupMenu(ctx, template, x, y) {
+  Menu.buildFromTemplate(template).popup({ window: ctx.win, x: Math.round(x), y: Math.round(y) });
+}
+
+function bookmarkContextMenu(ctx, node) {
+  const remove = { label: 'Supprimer', click: () => { bookmarks.remove(node.id); bookmarksChanged(); } };
+  const manage = { label: 'Gérer les favoris…', click: () => openBookmarksManager(ctx) };
+  if (node.type === 'folder') {
+    const links = node.children.filter((c) => c.type === 'link').length;
+    return [
+      { label: `Tout ouvrir (${links})`, enabled: links > 0, click: () => openAllInFolder(ctx, node) },
+      { type: 'separator' }, manage, remove,
+    ];
+  }
+  return [
+    { label: 'Ouvrir', click: () => openBookmark(ctx, node, false) },
+    { label: 'Ouvrir dans un nouvel onglet', click: () => openBookmark(ctx, node, true) },
+    { type: 'separator' }, manage, remove,
+  ];
+}
+
 // Ctrl+chiffre / Ctrl+Shift+chiffre : on lit `code` (Digit1…) et non `key`,
 // pour que ça marche aussi en AZERTY où les chiffres demandent Shift.
 function digitIndex(input) {
@@ -126,6 +207,12 @@ function handleShortcuts(webContents) {
       createWindow({ isPrivate: true });
     } else if (ctrl && !input.shift && key === 'n') {
       openNormalWindow();
+    } else if (ctrl && !input.shift && key === 'd') {
+      toggleBookmark(ctx);
+    } else if (ctrl && input.shift && key === 'b') {
+      toggleBookmarksBar();
+    } else if (ctrl && input.shift && key === 'o') {
+      openBookmarksManager(ctx);
     } else if (ctrl && !input.shift && key === 't') {
       newTab(ctx);
     } else if (ctrl && key === 'w') {
@@ -294,6 +381,29 @@ ipcMain.on('engines:resend', fromUi((ctx, id, typed) => resendTo(ctx, id, typed)
 ipcMain.handle('tabs:get-state', fromUi(({ tabs }) => tabs.getState()));
 ipcMain.handle('engines:get-state', fromUi(() => enginesState()));
 
+ipcMain.handle('bookmarks:get-state', fromUi(() => bookmarksState()));
+ipcMain.on('bookmarks:toggle', fromUi((ctx) => toggleBookmark(ctx)));
+ipcMain.on('bookmarks:open', fromUi((ctx, id, inNewTab) => openBookmark(ctx, bookmarks.getNode(id), !!inNewTab)));
+ipcMain.on('bookmarks:manage', fromUi((ctx) => openBookmarksManager(ctx)));
+// Menus natifs : dossier de la barre, favoris qui ne tiennent pas (»), clic droit
+ipcMain.on('bookmarks:folder-menu', fromUi((ctx, id, x, y) => {
+  const node = bookmarks.getNode(id);
+  if (node?.type !== 'folder') return;
+  const links = node.children.filter((c) => c.type === 'link').length;
+  popupMenu(ctx, [
+    ...bookmarkMenuItems(ctx, node.children),
+    ...(links ? [{ type: 'separator' }, { label: `Tout ouvrir (${links})`, click: () => openAllInFolder(ctx, node) }] : []),
+  ], x, y);
+}));
+ipcMain.on('bookmarks:overflow-menu', fromUi((ctx, ids, x, y) => {
+  const nodes = (Array.isArray(ids) ? ids : []).map((id) => bookmarks.getNode(id)).filter(Boolean);
+  popupMenu(ctx, bookmarkMenuItems(ctx, nodes), x, y);
+}));
+ipcMain.on('bookmarks:context-menu', fromUi((ctx, id, x, y) => {
+  const node = bookmarks.getNode(id);
+  if (node) popupMenu(ctx, bookmarkContextMenu(ctx, node), x, y);
+}));
+
 // --- IPC : pages internes (accueil, réglages) ---
 const INTERNAL_ACTIONS = {
   'set-engines': (list) => config.setEngines(list),
@@ -307,6 +417,16 @@ const INTERNAL_ACTIONS = {
     return r;
   },
   'set-favorites': (list) => config.setFavorites(list),
+  // gestionnaire de favoris (customnav://bookmarks/)
+  'bookmarks-get': () => bookmarksState(),
+  'bookmarks-add-link': (data) => bookmarks.addLink(data),
+  'bookmarks-add-folder': (data) => bookmarks.addFolder(data),
+  'bookmarks-update': (id, data) => bookmarks.update(id, data),
+  'bookmarks-remove': (id) => bookmarks.remove(id),
+  'bookmarks-move': (id, parentId, index) => bookmarks.move(id, parentId, index),
+  'bookmarks-import-sources': () => bookmarks.importSources(),
+  'bookmarks-import': (browserId) => bookmarks.importFrom(browserId),
+  'bookmarks-set-show-bar': (on) => config.setShowBookmarksBar(on),
   'clear-browsing-data': async () => {
     const ses = session.fromPartition(PARTITION);
     await ses.clearStorageData(); // cookies, localStorage, IndexedDB, service workers…
@@ -346,6 +466,9 @@ ipcMain.handle('internal', async (event, action, ...args) => {
   if (!fn) throw new Error(`Action inconnue : ${action}`);
   const result = await fn(...args);
   if (CHANGES_CONFIG.has(action) && !result?.error) configChanged();
+  if (action.startsWith('bookmarks-') && action !== 'bookmarks-get' && action !== 'bookmarks-import-sources' && !result?.error) {
+    bookmarksChanged();
+  }
   return result;
 });
 

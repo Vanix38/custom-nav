@@ -217,7 +217,7 @@ $('fav-add').addEventListener('click', () => {
 $('fav-save').addEventListener('click', async () => {
   const r = await api.setFavorites(favDraft);
   if (r?.error) return setStatus('fav-status', r.error, 'error');
-  setStatus('fav-status', 'Favoris enregistrés.', 'ok');
+  setStatus('fav-status', 'Raccourcis enregistrés.', 'ok');
 });
 
 // --- Thème ---

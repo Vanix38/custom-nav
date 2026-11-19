@@ -71,7 +71,6 @@ html, body {
 }
 
 #chrome {
-  height: var(--chrome-height);
   display: flex;
   flex-direction: column;
 }
@@ -151,6 +150,7 @@ html, body {
 /* --- Barre d'outils --- */
 #toolbar {
   height: calc(var(--chrome-height) - var(--tabbar-height));
+  flex: none;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -275,3 +275,55 @@ html, body {
 }
 
 #address:focus { border-color: var(--accent); }
+
+/* --- Étoile (favori) --- */
+#star { font-size: 18px; color: var(--fg-dim); }
+#star[aria-pressed="true"] { color: var(--accent); }
+
+/* --- Barre de favoris --- */
+#bookmarks-bar {
+  height: 30px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 8px 4px;
+  background: var(--bg-tab-active);
+}
+
+#bookmarks-bar[hidden] { display: none; }
+
+#bookmarks-items {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.bm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  max-width: 180px;
+  flex: none;
+  padding: 0 8px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.bm:hover { background: var(--hover); }
+.bm.overflow { visibility: hidden; }
+.bm[hidden] { display: none; }
+.bm img, .bm .ico { width: 16px; height: 16px; flex: none; border-radius: 3px; }
+.bm .ico { display: grid; place-items: center; font-size: 13px; }
+.bm .label { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+#bookmarks-items .empty { color: var(--fg-dim); font-size: 12px; padding: 0 8px; line-height: 24px; white-space: nowrap; }
+#bookmarks-items .empty a { color: var(--accent); cursor: pointer; }

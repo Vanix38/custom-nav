@@ -5,6 +5,7 @@ const search = require('./search');
 
 const HOME_PAGE = 'customnav://home/';
 const SETTINGS_PAGE = 'customnav://settings/';
+const BOOKMARKS_PAGE = 'customnav://bookmarks/';
 
 const DEFAULT_FAVORITES = [
   { name: 'YouTube', url: 'https://www.youtube.com/' },
@@ -28,6 +29,7 @@ function getConfig() {
     theme: THEMES.includes(settings.get('theme')) ? settings.get('theme') : 'system',
     restoreTabs: settings.get('restoreTabs', true) !== false,
     favorites: settings.get('favorites', DEFAULT_FAVORITES),
+    showBookmarksBar: settings.get('showBookmarksBar', true) !== false,
   };
 }
 
@@ -89,6 +91,11 @@ function setRestoreTabs(on) {
   return {};
 }
 
+function setShowBookmarksBar(on) {
+  settings.set('showBookmarksBar', !!on);
+  return {};
+}
+
 function setFavorites(list) {
   if (!Array.isArray(list)) return { error: 'Liste invalide.' };
   const out = [];
@@ -114,7 +121,7 @@ function saveSession(session) {
 }
 
 module.exports = {
-  HOME_PAGE, SETTINGS_PAGE, load, getConfig, homeUrl,
-  setEngines, resetEngines, setActiveEngine, setHomepage, setTheme, setRestoreTabs, setFavorites,
+  HOME_PAGE, SETTINGS_PAGE, BOOKMARKS_PAGE, load, getConfig, homeUrl,
+  setEngines, resetEngines, setActiveEngine, setHomepage, setTheme, setRestoreTabs, setFavorites, setShowBookmarksBar,
   getLastSession, saveSession,
 };
