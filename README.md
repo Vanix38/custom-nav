@@ -50,13 +50,83 @@ npm start
 - Barre d'adresse : une URL (`github.com`, `https://…`, `localhost:3000`) ou du texte → recherche avec le moteur / l'IA actif
 - Les liens `target=_blank` et `window.open` s'ouvrent dans un nouvel onglet
 - Connexions conservées entre les lancements (session persistante `persist:main`)
-- Page d'accueil interne pour les nouveaux onglets : grande barre de recherche, pastilles moteurs / IA et favoris
-- Page de réglages (bouton ⚙ ou `Ctrl+,`) : moteurs / IA, page d'accueil, favoris, thème, session
-- Navigation privée (bouton lunettes ou `Ctrl+Shift+N`), voir ci-dessous
+- Page d'accueil interne pour les nouveaux onglets : grande barre de recherche, pastilles moteurs / IA et raccourcis
+- Onglets intégrés à la barre de titre, sur la même ligne que les boutons Windows (réduire, agrandir,
+  fermer) ; la fenêtre se déplace en tirant la zone vide de la barre d'onglets (double-clic = agrandir)
+- Menu **☰** en haut à droite : nouvel onglet, nouvelle fenêtre privée, favoris, extensions, outils de
+  développement, paramètres
+- Page de réglages (menu ☰ ou `Ctrl+,`) : moteurs / IA, page d'accueil, raccourcis, thème, session
+- Navigation privée (menu ☰ ou `Ctrl+Shift+N`), voir ci-dessous
+- Outils de développement (les DevTools de Chrome) ancrés à droite de la page : `F12`, `Ctrl+Shift+I`,
+  menu ☰, ou clic droit > « Inspecter l'élément »
+- Favoris : étoile dans la barre d'adresse, barre de favoris, dossiers, import depuis Chrome / Edge / Brave, voir ci-dessous
+
+### Favoris
+
+- **☆ / `Ctrl+D`** : ajoute la page courante à la barre de favoris, ou l'en retire si elle y est déjà
+  (l'étoile devient ★).
+- **Barre de favoris** sous la barre d'outils (`Ctrl+Shift+B` pour l'afficher / la masquer) : clic pour
+  ouvrir dans l'onglet courant, `Ctrl+clic` ou clic molette pour un nouvel onglet, clic sur un dossier
+  pour son menu (sous-dossiers, « Tout ouvrir »), clic droit pour ouvrir / supprimer / gérer. Les favoris
+  qui ne tiennent pas dans la largeur passent dans le menu **»**.
+- **Gestionnaire** (`Ctrl+Shift+O`, ou « ★ Favoris » sur la page d'accueil, `customnav://bookmarks/`) :
+  recherche, renommer, changer l'adresse, créer des dossiers (imbriqués), déplacer, réordonner, supprimer.
+  Tout est enregistré immédiatement dans `settings.json` (clé `bookmarks`).
+- **Import** depuis Google Chrome, Microsoft Edge ou Brave (profil par défaut, s'il est installé) : copie
+  leurs favoris dans un dossier « Importés de … », sans rien modifier dans l'autre navigateur. Seules les
+  adresses `http://` et `https://` sont reprises.
+
+Les tuiles sous la recherche de la page d'accueil sont des **raccourcis** à part, réglables dans les réglages.
+
+### Bloqueur de publicités intégré
+
+Activé par défaut, dans les fenêtres normales **et** privées. Il repose sur le moteur open source de
+[Ghostery](https://github.com/ghostery/adblocker) (`@ghostery/adblocker-electron`, licence MPL-2.0) avec les
+listes EasyList, EasyPrivacy, filtres uBlock Origin, Peter Lowe et Liste FR :
+
+- blocage des requêtes de pub et de traqueurs, et masquage des emplacements de pub dans les pages
+  (filtres cosmétiques) ;
+- le **bouclier** à droite de la barre d'adresse affiche le nombre d'éléments bloqués sur la page ; un clic
+  ouvre un menu pour **autoriser les pubs sur ce site** (utile si un site ne s'affiche pas bien ou refuse les
+  bloqueurs), désactiver le bloqueur partout, ou ouvrir ses réglages ;
+- dans les réglages (section « Bloqueur de publicités ») : activer / désactiver, liste des sites autorisés,
+  mise à jour manuelle des listes. Les listes sont téléchargées au premier lancement, compilées et mises en
+  cache dans `%APPDATA%\custom-nav\adblock-engine.bin`, puis rafraîchies tous les 3 jours. Sans réseau, le
+  cache existant est utilisé.
+
+Limites : certains sites détectent les bloqueurs et demandent de les désactiver ; les pubs YouTube
+dépendent de scripts que YouTube change souvent, le blocage peut y être imparfait.
+
+### Extensions Chrome
+
+Le bouton pièce de puzzle (à droite de la barre d'adresse) ouvre `customnav://extensions/` : liste des
+extensions installées, options, suppression, recherche de mises à jour, et un lien vers le Chrome Web Store.
+
+- Sur le **Chrome Web Store**, le bouton « Ajouter à Chrome » (affiché « Ajouter à Custom Nav » ou similaire)
+  installe l'extension après une confirmation qui résume ses autorisations. Le Store affiche aussi un bandeau
+  « Passez à Chrome » : il peut être ignoré. Seules les extensions **Manifest V3** sont acceptées.
+- Les boutons des extensions apparaissent à droite de la barre d'adresse (clic = popup de l'extension).
+- Les éléments ajoutés au **clic droit** par les extensions apparaissent dans le menu contextuel des pages
+  (qui propose aussi : ouvrir le lien dans un nouvel onglet, copier, coller, inspecter…).
+- Mises à jour automatiques au lancement puis toutes les 5 heures. Fichiers dans `%APPDATA%\custom-nav\Extensions`.
+- **Aucune extension en navigation privée.**
+
+Tout repose sur [electron-chrome-extensions](https://github.com/samuelmaddock/electron-browser-shell) et
+electron-chrome-web-store. Electron n'est pas Chrome : beaucoup d'API d'extensions manquent. Constaté lors des tests :
+
+| Extension | Résultat |
+| --- | --- |
+| Dark Reader | fonctionne (bouton, popup, pages assombries) |
+| uBlock Origin Lite | s'installe mais **ne bloque rien** : `declarativeNetRequest` n'existe pas dans Electron, et son service worker plante (`chrome.commands` absent). Utiliser le bloqueur intégré à la place. |
+
+Ne fonctionnent pas non plus : les autres bloqueurs de pub Manifest V3 (même API), `chrome.identity` (connexion
+Google), `chrome.history`, `chrome.bookmarks`, `chrome.downloads`, les captures d'onglet et le remplacement de la
+page Nouvel onglet. Le reste (clic droit, onglets, cookies, notifications, raccourcis) marche plus ou moins selon
+l'extension : à essayer au cas par cas.
 
 ### Navigation privée
 
-`Ctrl+Shift+N` (ou le bouton lunettes à droite de la barre d'adresse) ouvre une
+`Ctrl+Shift+N` (ou « Nouvelle fenêtre privée » dans le menu ☰) ouvre une
 **fenêtre privée**, reconnaissable à sa teinte violette, au badge « Navigation privée » dans la barre
 d'onglets et au titre de la fenêtre.
 
@@ -118,6 +188,10 @@ utilisateur de l'app (`%APPDATA%custom-navsettings.json`).
 | --- | --- |
 | `Ctrl+T` | Nouvel onglet |
 | `Ctrl+Shift+N` | Nouvelle fenêtre privée |
+| `F12` / `Ctrl+Shift+I` | Outils de développement |
+| `Ctrl+D` | Ajouter / retirer la page des favoris |
+| `Ctrl+Shift+B` | Afficher / masquer la barre de favoris |
+| `Ctrl+Shift+O` | Gestionnaire de favoris |
 | `Ctrl+N` | Revenir à la fenêtre normale (la rouvre si elle est fermée) |
 | `Ctrl+W` | Fermer l'onglet |
 | `Ctrl+L` | Aller à la barre d'adresse |
@@ -138,6 +212,9 @@ src/
     tabs.js      gestion des onglets (un WebContentsView par onglet)
     search.js    liste des moteurs / IA, validation, transformation saisie → URL
     config.js    réglages (valeurs par défaut, validation, session)
+    bookmarks.js favoris (arbre liens / dossiers, import Chrome / Edge / Brave)
+    extensions.js extensions Chrome et Chrome Web Store (session normale uniquement)
+    adblock.js   bloqueur de pub intégré (moteur Ghostery, toutes les sessions)
     settings.js  lecture / écriture de settings.json
     internal.js  protocole customnav:// des pages internes
   preload/
@@ -146,7 +223,7 @@ src/
   renderer/
     index.html, styles.css, renderer.js   interface (onglets, barre d'outils)
   internal/
-    home.*, settings.*, common.css        pages d'accueil et de réglages
+    home.*, settings.*, bookmarks.*, extensions.*, common.css   pages internes
 build/        icône (icon.svg source, icon.ico, icon.png)
 scripts/      make-icon.js (génération de l'icône)
 ```
@@ -154,7 +231,8 @@ scripts/      make-icon.js (génération de l'icône)
 Sécurité :
 
 - les pages web tournent sans accès à Node (`nodeIntegration: false`, `contextIsolation: true`,
-  `sandbox: true`) ;
+  `sandbox: true`) ; seule l'interface (fichier local `index.html`, qui ne peut pas naviguer ailleurs) a un
+  preload non sandboxé, pour charger les boutons d'extensions ;
 - l'API des réglages (`window.customNav`) n'est exposée qu'aux pages `customnav://`, et le processus
   principal vérifie à chaque message que l'expéditeur est bien une page interne (cadre principal) ;
 - un site web ne peut pas ouvrir une page `customnav://` (navigation, redirection, cadre ou

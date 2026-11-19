@@ -122,3 +122,10 @@ label.radio, label.check {
   }
   .fav-row { grid-template-columns: 1fr; }
 }
+
+/* --- bloqueur de pub --- */
+.allow-row { justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); max-width: 420px; }
+.allow-row .host { font-family: Consolas, monospace; }
+#adblock-allow-form { margin-top: 10px; }
+#adblock-allow-form input { width: 260px; }
+#adblock-lists { margin: 0; }

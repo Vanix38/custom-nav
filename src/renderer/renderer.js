@@ -71,6 +71,8 @@ function render() {
   }
   const appName = isPrivate ? 'Custom Nav (navigation privée)' : 'Custom Nav';
   document.title = active ? `${active.title} – ${appName}` : appName;
+  renderStar(); // appelé après le chargement du script (événements IPC)
+  renderAdblock();
 }
 
 window.nav.onState((s) => {
@@ -88,8 +90,16 @@ window.nav.onFocusAddress(() => {
 $('new-tab').addEventListener('click', () => {
   window.nav.newTab();
 });
-$('settings').addEventListener('click', () => window.nav.openSettings());
-$('private-window').addEventListener('click', () => window.nav.newPrivateWindow());
+$('app-menu').addEventListener('click', () => {
+  const r = $('app-menu').getBoundingClientRect();
+  window.nav.appMenu(r.right, r.bottom);
+});
+$('extensions').addEventListener('click', () => window.nav.openExtensions());
+if (isPrivate) {
+  // pas d'extensions en navigation privée
+  $('extension-actions').remove();
+  $('extensions').hidden = true;
+}
 backBtn.addEventListener('click', () => window.nav.back());
 forwardBtn.addEventListener('click', () => window.nav.forward());
 reloadBtn.addEventListener('click', () => {
@@ -194,6 +204,178 @@ window.nav.onEngines((s) => { engines = s; renderEngines(); });
 window.nav.onResendShortcut((id) => resend(id));
 window.nav.getEngines().then((s) => { engines = s; renderEngines(); });
 
+// --- Favoris : étoile de la barre d'adresse + barre de favoris ---
+const star = $('star');
+const bmBar = $('bookmarks-bar');
+const bmItems = $('bookmarks-items');
+const bmMore = $('bookmarks-more');
+let bm = { tree: { children: [] }, showBar: true };
+let bookmarkedUrls = new Set();
+let hiddenIds = []; // favoris qui ne tiennent pas dans la barre (menu »)
+
+function collectUrls(node, out) {
+  for (const c of node.children || []) {
+    if (c.type === 'link') out.add(c.url);
+    else collectUrls(c, out);
+  }
+  return out;
+}
+
+function faviconFor(url) {
+  try {
+    return `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=32`;
+  } catch {
+    return '';
+  }
+}
+
+function renderStar() {
+  const active = state.tabs.find((t) => t.id === state.activeId);
+  const url = active?.url || '';
+  const can = /^https?:\/\//i.test(url);
+  const on = can && bookmarkedUrls.has(url);
+  star.disabled = !can;
+  star.textContent = on ? '★' : '☆';
+  star.setAttribute('aria-pressed', String(on));
+  star.title = on ? 'Retirer des favoris (Ctrl+D)' : 'Ajouter aux favoris (Ctrl+D)';
+}
+
+function bookmarkButton(node) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'bm';
+  b.dataset.id = node.id;
+  let ico;
+  if (node.type === 'folder') {
+    ico = document.createElement('span');
+    ico.className = 'ico';
+    ico.textContent = '📁';
+    b.title = node.title;
+  } else {
+    ico = document.createElement('img');
+    ico.alt = '';
+    ico.src = faviconFor(node.url);
+    ico.onerror = () => {
+      const s = document.createElement('span');
+      s.className = 'ico';
+      s.textContent = '☆';
+      ico.replaceWith(s);
+    };
+    b.title = node.title ? `${node.title}\n${node.url}` : node.url;
+  }
+  const label = document.createElement('span');
+  label.className = 'label';
+  label.textContent = node.title || (node.type === 'link' ? node.url : 'Dossier');
+  b.append(ico, label);
+
+  b.addEventListener('mousedown', (e) => { if (e.button === 1) e.preventDefault(); });
+  b.addEventListener('click', (e) => {
+    const r = b.getBoundingClientRect();
+    if (node.type === 'folder') window.nav.bookmarkFolderMenu(node.id, r.left, r.bottom);
+    else window.nav.openBookmark(node.id, e.ctrlKey || e.metaKey);
+  });
+  b.addEventListener('auxclick', (e) => {
+    if (e.button === 1 && node.type === 'link') window.nav.openBookmark(node.id, true); // clic molette
+  });
+  b.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    window.nav.bookmarkContextMenu(node.id, e.clientX, e.clientY);
+  });
+  return b;
+}
+
+// Les favoris qui dépassent sont masqués et proposés dans le menu »
+function layoutBookmarks() {
+  const buttons = [...bmItems.querySelectorAll('.bm')];
+  const overflowing = () => {
+    const limit = bmItems.getBoundingClientRect().right + 0.5;
+    return buttons.filter((b) => b.getBoundingClientRect().right > limit);
+  };
+  buttons.forEach((b) => b.classList.remove('overflow'));
+  bmMore.hidden = true;
+  let hidden = overflowing();
+  if (hidden.length) {
+    bmMore.hidden = false; // le bouton » prend de la place : on remesure
+    hidden = overflowing();
+  }
+  hidden.forEach((b) => b.classList.add('overflow'));
+  hiddenIds = hidden.map((b) => b.dataset.id);
+}
+
+function renderBookmarks() {
+  bookmarkedUrls = collectUrls(bm.tree, new Set());
+  bmBar.hidden = !bm.showBar;
+  const nodes = bm.tree.children || [];
+  if (nodes.length === 0) {
+    const empty = document.createElement('span');
+    empty.className = 'empty';
+    empty.append('Ajoute la page courante avec ☆ ou Ctrl+D. ');
+    const link = document.createElement('a');
+    link.textContent = 'Importer depuis Chrome ou Edge…';
+    link.addEventListener('click', () => window.nav.manageBookmarks());
+    empty.append(link);
+    bmItems.replaceChildren(empty);
+  } else {
+    bmItems.replaceChildren(...nodes.map(bookmarkButton));
+  }
+  layoutBookmarks();
+  renderStar();
+}
+
+star.addEventListener('mousedown', (e) => e.preventDefault());
+star.addEventListener('click', () => window.nav.toggleBookmark());
+bmMore.addEventListener('click', () => {
+  const r = bmMore.getBoundingClientRect();
+  window.nav.bookmarkOverflowMenu(hiddenIds, r.left, r.bottom);
+});
+new ResizeObserver(layoutBookmarks).observe(bmItems);
+
+window.nav.onBookmarks((s) => { bm = s; renderBookmarks(); });
+window.nav.getBookmarks().then((s) => { if (s) { bm = s; renderBookmarks(); } });
+
+// --- Bloqueur de pub : bouclier + nombre d'éléments bloqués sur la page ---
+const adBtn = $('adblock');
+const adCount = $('adblock-count');
+let adblock = { enabled: true, allowlist: [], ready: false };
+
+function hostOf(url) {
+  try {
+    const u = new URL(url);
+    return /^https?:$/.test(u.protocol) ? u.hostname.replace(/^www\./, '') : '';
+  } catch {
+    return '';
+  }
+}
+
+function renderAdblock() {
+  const active = state.tabs.find((t) => t.id === state.activeId);
+  const host = hostOf(active?.url || '');
+  const allowed = !!host && adblock.allowlist.some((h) => host === h || host.endsWith('.' + h));
+  const on = adblock.enabled && !allowed;
+  adBtn.classList.toggle('off', !on);
+  const n = on && active ? active.blocked || 0 : 0;
+  adCount.hidden = n === 0;
+  adCount.textContent = n > 99 ? '99+' : String(n);
+  adBtn.title = !adblock.enabled ? 'Bloqueur de publicités désactivé'
+    : allowed ? `Publicités autorisées sur ${host}`
+    : `Bloqueur de publicités : ${n} élément(s) bloqué(s) sur cette page`;
+}
+
+adBtn.addEventListener('click', () => {
+  const r = adBtn.getBoundingClientRect();
+  window.nav.adblockMenu(r.left, r.bottom);
+});
+window.nav.onAdblock((s) => { adblock = s; renderAdblock(); });
+window.nav.getAdblock().then((s) => { if (s) { adblock = s; renderAdblock(); } });
+
 // La zone des pages commence sous l'interface : on transmet sa hauteur réelle
 const chromeEl = $('chrome');
 new ResizeObserver(() => window.nav.setChromeHeight(chromeEl.offsetHeight)).observe(chromeEl);
+
+// Boutons Windows (réduire / agrandir / fermer) aux couleurs de la barre d'onglets
+function syncTitlebarColors() {
+  const cs = getComputedStyle(document.documentElement);
+  window.nav.setTitlebarColors(cs.getPropertyValue('--bg').trim(), cs.getPropertyValue('--fg').trim());
+}
+syncTitlebarColors();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncTitlebarColors);

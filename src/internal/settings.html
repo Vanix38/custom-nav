@@ -35,7 +35,7 @@
     <section>
       <h2>Page d'accueil</h2>
       <label class="radio"><input type="radio" name="home-mode" value="internal" />
-        Page d'accueil Custom Nav (recherche + favoris)</label>
+        Page d'accueil Custom Nav (recherche + raccourcis)</label>
       <label class="radio"><input type="radio" name="home-mode" value="url" />
         Une adresse :</label>
       <div class="row indent">
@@ -44,12 +44,13 @@
       </div>
       <p class="status" id="home-status" role="status"></p>
 
-      <h3>Favoris de la page d'accueil</h3>
+      <h3>Raccourcis de la page d'accueil</h3>
+      <p class="help">Les tuiles affichées sous la recherche. Les vrais favoris (étoile, barre de favoris) se gèrent dans <a href="customnav://bookmarks/">Favoris</a> (<kbd>Ctrl+Shift+O</kbd>).</p>
       <div id="fav-list"></div>
       <div class="row actions">
-        <button type="button" id="fav-add">+ Ajouter un favori</button>
+        <button type="button" id="fav-add">+ Ajouter un raccourci</button>
         <span class="spacer"></span>
-        <button type="button" id="fav-save" class="primary">Enregistrer les favoris</button>
+        <button type="button" id="fav-save" class="primary">Enregistrer les raccourcis</button>
       </div>
       <p class="status" id="fav-status" role="status"></p>
     </section>
@@ -61,6 +62,27 @@
         <label><input type="radio" name="theme" value="light" /> Clair</label>
         <label><input type="radio" name="theme" value="dark" /> Sombre</label>
       </div>
+    </section>
+
+    <section id="adblock-section">
+      <h2>Bloqueur de publicités</h2>
+      <label class="check"><input type="checkbox" id="adblock-enabled" />
+        Bloquer les publicités et les traqueurs (fenêtres normales et privées)</label>
+      <p class="help">Basé sur le moteur open source de Ghostery et les listes EasyList, EasyPrivacy,
+        uBlock Origin et Liste FR. Le bouclier à droite de la barre d'adresse indique combien d'éléments ont été bloqués sur
+        la page et permet d'autoriser les pubs sur un site qui ne s'affiche pas correctement.</p>
+      <h3>Sites autorisés</h3>
+      <div id="adblock-allowlist"></div>
+      <form class="row" id="adblock-allow-form">
+        <input type="text" id="adblock-host" placeholder="exemple.com" aria-label="Site à autoriser" />
+        <button type="submit">Autoriser ce site</button>
+      </form>
+      <div class="row actions">
+        <span class="help" id="adblock-lists"></span>
+        <span class="spacer"></span>
+        <button type="button" id="adblock-update">Mettre à jour les listes</button>
+      </div>
+      <p class="status" id="adblock-status" role="status"></p>
     </section>
 
     <section>
