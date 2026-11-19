@@ -91,6 +91,12 @@ $('new-tab').addEventListener('click', () => {
 });
 $('settings').addEventListener('click', () => window.nav.openSettings());
 $('private-window').addEventListener('click', () => window.nav.newPrivateWindow());
+$('extensions').addEventListener('click', () => window.nav.openExtensions());
+if (isPrivate) {
+  // pas d'extensions en navigation privée
+  $('extension-actions').remove();
+  $('extensions').hidden = true;
+}
 backBtn.addEventListener('click', () => window.nav.back());
 forwardBtn.addEventListener('click', () => window.nav.forward());
 reloadBtn.addEventListener('click', () => {

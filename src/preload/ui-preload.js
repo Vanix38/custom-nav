@@ -2,6 +2,12 @@
 // Seule cette API limitée est exposée : pas d'accès à Node dans la page.
 const { contextBridge, ipcRenderer } = require('electron');
 
+// Boutons des extensions Chrome (<browser-action-list>), seulement dans la
+// fenêtre normale : les fenêtres privées n'ont pas d'extensions.
+if (new URLSearchParams(location.search).get('private') !== '1') {
+  require('electron-chrome-extensions/browser-action').injectBrowserAction();
+}
+
 contextBridge.exposeInMainWorld('nav', {
   // onglets / navigation
   newTab: (input) => ipcRenderer.send('tabs:new', input),
@@ -18,6 +24,7 @@ contextBridge.exposeInMainWorld('nav', {
   setChromeHeight: (px) => ipcRenderer.send('ui:chrome-height', px),
   openSettings: () => ipcRenderer.send('ui:open-settings'),
   newPrivateWindow: () => ipcRenderer.send('ui:new-private-window'),
+  openExtensions: () => ipcRenderer.send('ui:open-extensions'),
 
   // moteurs de recherche / IA
   getEngines: () => ipcRenderer.invoke('engines:get-state'),

@@ -106,6 +106,7 @@ class TabManager extends EventEmitter {
     });
 
     if (this.onWebContentsCreated) this.onWebContentsCreated(wc);
+    this.emit('tab-created', tab); // pour les extensions (chrome.tabs)
 
     this.load(tab, { url, inject });
     if (activate) this.activate(id);
@@ -134,6 +135,7 @@ class TabManager extends EventEmitter {
     this.win.contentView.addChildView(tab.view);
     this.layout();
     tab.view.webContents.focus();
+    this.emit('tab-activated', tab);
     this.emitState();
   }
 
@@ -144,6 +146,7 @@ class TabManager extends EventEmitter {
     this.order.splice(idx, 1);
     this.tabs.delete(id);
     this.win.contentView.removeChildView(tab.view);
+    this.emit('tab-closed', tab);
     tab.view.webContents.close();
 
     if (this.order.length === 0) {

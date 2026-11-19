@@ -53,5 +53,9 @@
       "deleteAppDataOnUninstall": false,
       "artifactName": "Custom-Nav-Setup-${version}.${ext}"
     }
+  },
+  "dependencies": {
+    "electron-chrome-extensions": "^4.10.0",
+    "electron-chrome-web-store": "^0.13.0"
   }
 }
