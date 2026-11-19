@@ -50,9 +50,27 @@ npm start
 - Barre d'adresse : une URL (`github.com`, `https://…`, `localhost:3000`) ou du texte → recherche avec le moteur / l'IA actif
 - Les liens `target=_blank` et `window.open` s'ouvrent dans un nouvel onglet
 - Connexions conservées entre les lancements (session persistante `persist:main`)
-- Page d'accueil interne pour les nouveaux onglets : grande barre de recherche, pastilles moteurs / IA et favoris
-- Page de réglages (bouton ⚙ ou `Ctrl+,`) : moteurs / IA, page d'accueil, favoris, thème, session
+- Page d'accueil interne pour les nouveaux onglets : grande barre de recherche, pastilles moteurs / IA et raccourcis
+- Page de réglages (bouton ⚙ ou `Ctrl+,`) : moteurs / IA, page d'accueil, raccourcis, thème, session
 - Navigation privée (bouton lunettes ou `Ctrl+Shift+N`), voir ci-dessous
+- Favoris : étoile dans la barre d'adresse, barre de favoris, dossiers, import depuis Chrome / Edge / Brave, voir ci-dessous
+
+### Favoris
+
+- **☆ / `Ctrl+D`** : ajoute la page courante à la barre de favoris, ou l'en retire si elle y est déjà
+  (l'étoile devient ★).
+- **Barre de favoris** sous la barre d'outils (`Ctrl+Shift+B` pour l'afficher / la masquer) : clic pour
+  ouvrir dans l'onglet courant, `Ctrl+clic` ou clic molette pour un nouvel onglet, clic sur un dossier
+  pour son menu (sous-dossiers, « Tout ouvrir »), clic droit pour ouvrir / supprimer / gérer. Les favoris
+  qui ne tiennent pas dans la largeur passent dans le menu **»**.
+- **Gestionnaire** (`Ctrl+Shift+O`, ou « ★ Favoris » sur la page d'accueil, `customnav://bookmarks/`) :
+  recherche, renommer, changer l'adresse, créer des dossiers (imbriqués), déplacer, réordonner, supprimer.
+  Tout est enregistré immédiatement dans `settings.json` (clé `bookmarks`).
+- **Import** depuis Google Chrome, Microsoft Edge ou Brave (profil par défaut, s'il est installé) : copie
+  leurs favoris dans un dossier « Importés de … », sans rien modifier dans l'autre navigateur. Seules les
+  adresses `http://` et `https://` sont reprises.
+
+Les tuiles sous la recherche de la page d'accueil sont des **raccourcis** à part, réglables dans les réglages.
 
 ### Navigation privée
 
@@ -118,6 +136,9 @@ utilisateur de l'app (`%APPDATA%custom-navsettings.json`).
 | --- | --- |
 | `Ctrl+T` | Nouvel onglet |
 | `Ctrl+Shift+N` | Nouvelle fenêtre privée |
+| `Ctrl+D` | Ajouter / retirer la page des favoris |
+| `Ctrl+Shift+B` | Afficher / masquer la barre de favoris |
+| `Ctrl+Shift+O` | Gestionnaire de favoris |
 | `Ctrl+N` | Revenir à la fenêtre normale (la rouvre si elle est fermée) |
 | `Ctrl+W` | Fermer l'onglet |
 | `Ctrl+L` | Aller à la barre d'adresse |
@@ -138,6 +159,7 @@ src/
     tabs.js      gestion des onglets (un WebContentsView par onglet)
     search.js    liste des moteurs / IA, validation, transformation saisie → URL
     config.js    réglages (valeurs par défaut, validation, session)
+    bookmarks.js favoris (arbre liens / dossiers, import Chrome / Edge / Brave)
     settings.js  lecture / écriture de settings.json
     internal.js  protocole customnav:// des pages internes
   preload/
@@ -146,7 +168,7 @@ src/
   renderer/
     index.html, styles.css, renderer.js   interface (onglets, barre d'outils)
   internal/
-    home.*, settings.*, common.css        pages d'accueil et de réglages
+    home.*, settings.*, bookmarks.*, common.css   pages d'accueil, de réglages et de favoris
 build/        icône (icon.svg source, icon.ico, icon.png)
 scripts/      make-icon.js (génération de l'icône)
 ```

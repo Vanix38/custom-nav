@@ -35,7 +35,7 @@
     <section>
       <h2>Page d'accueil</h2>
       <label class="radio"><input type="radio" name="home-mode" value="internal" />
-        Page d'accueil Custom Nav (recherche + favoris)</label>
+        Page d'accueil Custom Nav (recherche + raccourcis)</label>
       <label class="radio"><input type="radio" name="home-mode" value="url" />
         Une adresse :</label>
       <div class="row indent">
@@ -44,12 +44,13 @@
       </div>
       <p class="status" id="home-status" role="status"></p>
 
-      <h3>Favoris de la page d'accueil</h3>
+      <h3>Raccourcis de la page d'accueil</h3>
+      <p class="help">Les tuiles affichées sous la recherche. Les vrais favoris (étoile, barre de favoris) se gèrent dans <a href="customnav://bookmarks/">Favoris</a> (<kbd>Ctrl+Shift+O</kbd>).</p>
       <div id="fav-list"></div>
       <div class="row actions">
-        <button type="button" id="fav-add">+ Ajouter un favori</button>
+        <button type="button" id="fav-add">+ Ajouter un raccourci</button>
         <span class="spacer"></span>
-        <button type="button" id="fav-save" class="primary">Enregistrer les favoris</button>
+        <button type="button" id="fav-save" class="primary">Enregistrer les raccourcis</button>
       </div>
       <p class="status" id="fav-status" role="status"></p>
     </section>
