@@ -45,7 +45,8 @@ npm start
 
 ## Fonctionnalités
 
-- Barre d'onglets : nouvel onglet, fermeture (bouton × ou clic molette), changement d'onglet
+- Barre d'onglets : nouvel onglet, fermeture (bouton × ou clic molette), changement d'onglet ; clic droit sur un
+  onglet : recharger, dupliquer, fermer, fermer les autres onglets / ceux à droite / ceux à gauche
 - Boutons précédent / suivant / recharger (devient « arrêter » pendant le chargement)
 - Barre d'adresse : une URL (`github.com`, `https://…`, `localhost:3000`) ou du texte → recherche avec le moteur / l'IA actif
 - Les liens `target=_blank` et `window.open` s'ouvrent dans un nouvel onglet

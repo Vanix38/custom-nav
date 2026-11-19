@@ -401,6 +401,26 @@ ipcMain.on('tabs:new', fromUi((ctx, input) => {
 }));
 ipcMain.on('tabs:close', fromUi(({ tabs }, id) => tabs.close(id)));
 ipcMain.on('tabs:activate', fromUi(({ tabs }, id) => tabs.activate(id)));
+// Clic droit sur un onglet
+ipcMain.on('tabs:context-menu', fromUi((ctx, id, x, y) => {
+  const { tabs } = ctx;
+  const i = tabs.order.indexOf(id);
+  if (i < 0) return;
+  const tab = tabs.tabs.get(id);
+  const others = tabs.order.filter((t) => t !== id);
+  const right = tabs.order.slice(i + 1);
+  const left = tabs.order.slice(0, i);
+  Menu.buildFromTemplate([
+    { label: 'Nouvel onglet', click: () => newTab(ctx) },
+    { label: 'Recharger', click: () => tab.view.webContents.reload() },
+    { label: 'Dupliquer', enabled: isHttpUrl(tab.url) || internal.isInternalUrl(tab.url), click: () => tabs.create({ url: tab.url, query: tab.query }) },
+    { type: 'separator' },
+    { label: 'Fermer', accelerator: 'Ctrl+W', click: () => tabs.close(id) },
+    { label: 'Fermer les autres onglets', enabled: others.length > 0, click: () => { tabs.closeMany(others); tabs.activate(id); } },
+    { label: 'Fermer les onglets à droite', enabled: right.length > 0, click: () => tabs.closeMany(right) },
+    { label: 'Fermer les onglets à gauche', enabled: left.length > 0, click: () => tabs.closeMany(left) },
+  ]).popup({ window: ctx.win, x: Math.round(x), y: Math.round(y) });
+}));
 ipcMain.on('nav:go', fromUi(({ tabs }, input) => tabs.navigate(resolveInput(input, activeEngineId()))));
 ipcMain.on('nav:back', fromUi(({ tabs }) => tabs.goBack()));
 ipcMain.on('nav:forward', fromUi(({ tabs }) => tabs.goForward()));
