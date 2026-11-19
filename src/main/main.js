@@ -7,6 +7,7 @@ const config = require('./config');
 const bookmarks = require('./bookmarks');
 const extensions = require('./extensions');
 const adblock = require('./adblock');
+const resend = require('./resend');
 
 // Hauteur initiale de l'interface ; l'interface envoie ensuite sa vraie hauteur.
 const CHROME_HEIGHT = 80;
@@ -24,7 +25,7 @@ app.userAgentFallback = app.userAgentFallback
   .replace(/\sElectron\/\S+/, '')
   .replace(/\s(?:Custom Nav|custom-nav)\/\S+/gi, '');
 
-internal.registerScheme();
+internal.registerScheme([resend.schemePrivileges]);
 
 // Une entrée par fenêtre ouverte : { win, tabs, isPrivate, partition }.
 // Il y a au plus une fenêtre normale (celle dont les onglets sont rouverts au
@@ -340,9 +341,11 @@ function createWindow({ isPrivate = false, restore = true } = {}) {
     onWebContentsCreated: (wc, { devtools = false } = {}) => {
       handleShortcuts(wc);
       if (!devtools) handleContextMenu(wc); // les outils ont leur propre clic droit
+      else resend.attachDevTools(wc);
     },
   });
   adblock.addSession(session.fromPartition(partition)); // pubs bloquées aussi en privé
+  resend.addSession(session.fromPartition(partition)); // onglet « Renvoyer » des DevTools
   const ctx = { win, tabs, isPrivate, partition };
   windows.add(ctx);
   if (!isPrivate) mainCtx = ctx;
@@ -676,6 +679,13 @@ app.whenReady().then(async () => {
   }).then(adblockChanged);
   await extensions.init(PARTITION, extensionImpl);
   extensions.onChange(extensionsChanged);
+  // onglet « Renvoyer » des outils de développement (modifier et renvoyer une requête)
+  await resend.init({
+    isTab: (wc) => {
+      const tab = ctxFor(wc)?.tabs.tabFor(wc);
+      return !!tab && tab.view.webContents === wc;
+    },
+  });
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

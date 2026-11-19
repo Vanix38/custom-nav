@@ -30,6 +30,9 @@
       "build/icon.ico",
       "package.json"
     ],
+    "asarUnpack": [
+      "src/devtools-ext/**"
+    ],
     "win": {
       "target": [
         {

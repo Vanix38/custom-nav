@@ -8,6 +8,7 @@
 const { app, dialog, session } = require('electron');
 const { ElectronChromeExtensions } = require('electron-chrome-extensions');
 const { installChromeWebStore, uninstallExtension, updateExtensions } = require('electron-chrome-web-store');
+const { isResendExtension } = require('./resend');
 
 const WEB_STORE_URL = 'https://chromewebstore.google.com/';
 
@@ -114,7 +115,7 @@ function optionsUrl(ext) {
 // Liste affichée dans customnav://extensions/
 function list() {
   if (!extSession) return [];
-  return extSession.extensions.getAllExtensions().map((ext) => ({
+  return extSession.extensions.getAllExtensions().filter((ext) => !isResendExtension(ext)).map((ext) => ({
     id: ext.id,
     name: ext.name,
     version: ext.version,
@@ -128,7 +129,7 @@ function list() {
 
 async function remove(id) {
   const ext = extSession?.extensions.getExtension(id);
-  if (!ext) return { error: 'Extension introuvable.' };
+  if (!ext || isResendExtension(ext)) return { error: 'Extension introuvable.' };
   try {
     await uninstallExtension(id, { session: extSession });
   } catch (e) {

@@ -12,10 +12,12 @@ const SCHEME = 'customnav';
 const ROOT = path.join(__dirname, '..', 'internal');
 const PAGES = new Set(['home', 'settings', 'bookmarks', 'extensions']);
 
-// À appeler avant app.whenReady()
-function registerScheme() {
+// À appeler avant app.whenReady(), une seule fois : `extra` ajoute les autres
+// schémas de l'app (registerSchemesAsPrivileged remplace la liste à chaque appel)
+function registerScheme(extra = []) {
   protocol.registerSchemesAsPrivileged([
     { scheme: SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true } },
+    ...extra,
   ]);
 }
 
