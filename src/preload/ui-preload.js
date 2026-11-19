@@ -22,8 +22,10 @@ contextBridge.exposeInMainWorld('nav', {
   onState: (cb) => ipcRenderer.on('tabs:state', (_e, state) => cb(state)),
   onFocusAddress: (cb) => ipcRenderer.on('ui:focus-address', () => cb()),
   setChromeHeight: (px) => ipcRenderer.send('ui:chrome-height', px),
+  setTitlebarColors: (color, symbolColor) => ipcRenderer.send('ui:titlebar-colors', color, symbolColor),
   openSettings: () => ipcRenderer.send('ui:open-settings'),
   newPrivateWindow: () => ipcRenderer.send('ui:new-private-window'),
+  appMenu: (x, y) => ipcRenderer.send('ui:app-menu', x, y),
   openExtensions: () => ipcRenderer.send('ui:open-extensions'),
   // bloqueur de pub
   getAdblock: () => ipcRenderer.invoke('adblock:get-state'),

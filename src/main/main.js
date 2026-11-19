@@ -209,6 +209,8 @@ function handleShortcuts(webContents) {
       createWindow({ isPrivate: true });
     } else if (ctrl && !input.shift && key === 'n') {
       openNormalWindow();
+    } else if (key === 'f12' || (ctrl && input.shift && key === 'i')) {
+      tabs.toggleDevTools();
     } else if (ctrl && !input.shift && key === 'd') {
       toggleBookmark(ctx);
     } else if (ctrl && input.shift && key === 'b') {
@@ -266,6 +268,18 @@ function openInitialTabs(ctx, restore) {
   ctx.tabs.activate(ids[Math.min(last.active || 0, ids.length - 1)]);
 }
 
+// Barre de titre intégrée : les onglets sont sur la même ligne que les boutons
+// Windows (réduire, agrandir, fermer), dessinés par le système par-dessus
+// l'interface avec les couleurs de la barre d'onglets.
+const TITLEBAR_HEIGHT = 36; // = --tabbar-height dans styles.css
+
+function titleBarOverlay(isPrivate) {
+  const dark = nativeTheme.shouldUseDarkColors;
+  let color = dark ? '#1e1f24' : '#dfe1e6';
+  if (isPrivate) color = dark ? '#221c30' : '#dcd5ee';
+  return { color, symbolColor: dark ? '#e6e7eb' : '#1d1e22', height: TITLEBAR_HEIGHT };
+}
+
 const windowBackground = (isPrivate) => {
   if (isPrivate) return nativeTheme.shouldUseDarkColors ? '#221c30' : '#dcd5ee';
   return nativeTheme.shouldUseDarkColors ? '#1e1f24' : '#e9eaee';
@@ -301,6 +315,8 @@ function createWindow({ isPrivate = false, restore = true } = {}) {
     icon: APP_ICON,
     backgroundColor: windowBackground(isPrivate),
     autoHideMenuBar: true,
+    titleBarStyle: 'hidden',
+    titleBarOverlay: titleBarOverlay(isPrivate),
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload', 'ui-preload.js'),
       contextIsolation: true,
@@ -321,9 +337,9 @@ function createWindow({ isPrivate = false, restore = true } = {}) {
     partition,
     // en privé, toujours la page d'accueil interne (elle affiche le bandeau « privé »)
     getHomeUrl: () => (isPrivate ? config.HOME_PAGE : config.homeUrl()),
-    onWebContentsCreated: (wc) => {
+    onWebContentsCreated: (wc, { devtools = false } = {}) => {
       handleShortcuts(wc);
-      handleContextMenu(wc);
+      if (!devtools) handleContextMenu(wc); // les outils ont leur propre clic droit
     },
   });
   adblock.addSession(session.fromPartition(partition)); // pubs bloquées aussi en privé
@@ -363,7 +379,8 @@ function createWindow({ isPrivate = false, restore = true } = {}) {
 
 nativeTheme.on('updated', () => {
   for (const ctx of windows) {
-    if (!ctx.win.isDestroyed()) ctx.win.setBackgroundColor(windowBackground(ctx.isPrivate));
+    if (ctx.win.isDestroyed()) continue;
+    ctx.win.setBackgroundColor(windowBackground(ctx.isPrivate));
   }
 });
 
@@ -390,6 +407,28 @@ ipcMain.on('nav:reload', fromUi(({ tabs }) => tabs.reload()));
 ipcMain.on('nav:stop', fromUi(({ tabs }) => tabs.stop()));
 ipcMain.on('ui:chrome-height', fromUi(({ tabs }, px) => {
   if (Number.isFinite(px) && px > 0) tabs.setTopOffset(Math.round(px));
+}));
+// L'interface envoie les couleurs réellement affichées de sa barre d'onglets :
+// les boutons Windows prennent exactement les mêmes (thème clair / sombre / privé)
+const HEX = /^#[0-9a-f]{6}$/i;
+ipcMain.on('ui:titlebar-colors', fromUi((ctx, color, symbolColor) => {
+  if (HEX.test(color) && HEX.test(symbolColor)) {
+    ctx.win.setTitleBarOverlay({ color, symbolColor, height: TITLEBAR_HEIGHT });
+  }
+}));
+// Menu ☰ en haut à droite (aligné sur le bord droit du bouton)
+const APP_MENU_WIDTH = 270;
+ipcMain.on('ui:app-menu', fromUi((ctx, x, y) => {
+  Menu.buildFromTemplate([
+    { label: 'Nouvel onglet', accelerator: 'Ctrl+T', click: () => newTab(ctx) },
+    { label: 'Nouvelle fenêtre privée', accelerator: 'Ctrl+Shift+N', click: () => createWindow({ isPrivate: true }) },
+    { type: 'separator' },
+    { label: 'Favoris', accelerator: 'Ctrl+Shift+O', click: () => openBookmarksManager(ctx) },
+    { label: 'Extensions', click: () => ctx.tabs.focusOrCreate(config.EXTENSIONS_PAGE) },
+    { label: 'Outils de développement', accelerator: 'F12', click: () => ctx.tabs.toggleDevTools() },
+    { type: 'separator' },
+    { label: 'Paramètres', accelerator: 'Ctrl+,', click: () => openSettings(ctx) },
+  ]).popup({ window: ctx.win, x: Math.max(0, Math.round(x) - APP_MENU_WIDTH), y: Math.round(y) });
 }));
 ipcMain.on('ui:open-settings', fromUi((ctx) => openSettings(ctx)));
 ipcMain.on('ui:new-private-window', fromUi(() => createWindow({ isPrivate: true })));
@@ -617,7 +656,7 @@ function handleContextMenu(webContents) {
     }
     const extItems = extensions.contextMenuItems(webContents, params);
     if (extItems.length) items.push({ type: 'separator' }, ...extItems);
-    items.push({ type: 'separator' }, { label: "Inspecter l'élément", click: () => webContents.inspectElement(params.x, params.y) });
+    items.push({ type: 'separator' }, { label: "Inspecter l'élément", click: () => ctx.tabs.inspectElement(webContents, params.x, params.y) });
     Menu.buildFromTemplate(items).popup({ window: ctx.win });
   });
 }

@@ -51,8 +51,14 @@ npm start
 - Les liens `target=_blank` et `window.open` s'ouvrent dans un nouvel onglet
 - Connexions conservées entre les lancements (session persistante `persist:main`)
 - Page d'accueil interne pour les nouveaux onglets : grande barre de recherche, pastilles moteurs / IA et raccourcis
-- Page de réglages (bouton ⚙ ou `Ctrl+,`) : moteurs / IA, page d'accueil, raccourcis, thème, session
-- Navigation privée (bouton lunettes ou `Ctrl+Shift+N`), voir ci-dessous
+- Onglets intégrés à la barre de titre, sur la même ligne que les boutons Windows (réduire, agrandir,
+  fermer) ; la fenêtre se déplace en tirant la zone vide de la barre d'onglets (double-clic = agrandir)
+- Menu **☰** en haut à droite : nouvel onglet, nouvelle fenêtre privée, favoris, extensions, outils de
+  développement, paramètres
+- Page de réglages (menu ☰ ou `Ctrl+,`) : moteurs / IA, page d'accueil, raccourcis, thème, session
+- Navigation privée (menu ☰ ou `Ctrl+Shift+N`), voir ci-dessous
+- Outils de développement (les DevTools de Chrome) ancrés à droite de la page : `F12`, `Ctrl+Shift+I`,
+  menu ☰, ou clic droit > « Inspecter l'élément »
 - Favoris : étoile dans la barre d'adresse, barre de favoris, dossiers, import depuis Chrome / Edge / Brave, voir ci-dessous
 
 ### Favoris
@@ -120,7 +126,7 @@ l'extension : à essayer au cas par cas.
 
 ### Navigation privée
 
-`Ctrl+Shift+N` (ou le bouton lunettes à droite de la barre d'adresse) ouvre une
+`Ctrl+Shift+N` (ou « Nouvelle fenêtre privée » dans le menu ☰) ouvre une
 **fenêtre privée**, reconnaissable à sa teinte violette, au badge « Navigation privée » dans la barre
 d'onglets et au titre de la fenêtre.
 
@@ -182,6 +188,7 @@ utilisateur de l'app (`%APPDATA%custom-navsettings.json`).
 | --- | --- |
 | `Ctrl+T` | Nouvel onglet |
 | `Ctrl+Shift+N` | Nouvelle fenêtre privée |
+| `F12` / `Ctrl+Shift+I` | Outils de développement |
 | `Ctrl+D` | Ajouter / retirer la page des favoris |
 | `Ctrl+Shift+B` | Afficher / masquer la barre de favoris |
 | `Ctrl+Shift+O` | Gestionnaire de favoris |

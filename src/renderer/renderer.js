@@ -90,8 +90,10 @@ window.nav.onFocusAddress(() => {
 $('new-tab').addEventListener('click', () => {
   window.nav.newTab();
 });
-$('settings').addEventListener('click', () => window.nav.openSettings());
-$('private-window').addEventListener('click', () => window.nav.newPrivateWindow());
+$('app-menu').addEventListener('click', () => {
+  const r = $('app-menu').getBoundingClientRect();
+  window.nav.appMenu(r.right, r.bottom);
+});
 $('extensions').addEventListener('click', () => window.nav.openExtensions());
 if (isPrivate) {
   // pas d'extensions en navigation privée
@@ -369,3 +371,11 @@ window.nav.getAdblock().then((s) => { if (s) { adblock = s; renderAdblock(); } }
 // La zone des pages commence sous l'interface : on transmet sa hauteur réelle
 const chromeEl = $('chrome');
 new ResizeObserver(() => window.nav.setChromeHeight(chromeEl.offsetHeight)).observe(chromeEl);
+
+// Boutons Windows (réduire / agrandir / fermer) aux couleurs de la barre d'onglets
+function syncTitlebarColors() {
+  const cs = getComputedStyle(document.documentElement);
+  window.nav.setTitlebarColors(cs.getPropertyValue('--bg').trim(), cs.getPropertyValue('--fg').trim());
+}
+syncTitlebarColors();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncTitlebarColors);

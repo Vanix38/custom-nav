@@ -133,10 +133,14 @@ class TabManager extends EventEmitter {
     if (!tab) return;
     if (this.activeId && this.activeId !== id) {
       const prev = this.tabs.get(this.activeId);
-      if (prev) this.win.contentView.removeChildView(prev.view);
+      if (prev) {
+        this.win.contentView.removeChildView(prev.view);
+        if (prev.devtools) this.win.contentView.removeChildView(prev.devtools);
+      }
     }
     this.activeId = id;
     this.win.contentView.addChildView(tab.view);
+    if (tab.devtools) this.win.contentView.addChildView(tab.devtools);
     this.layout();
     tab.view.webContents.focus();
     this.emit('tab-activated', tab);
@@ -150,6 +154,10 @@ class TabManager extends EventEmitter {
     this.order.splice(idx, 1);
     this.tabs.delete(id);
     this.win.contentView.removeChildView(tab.view);
+    if (tab.devtools) {
+      this.win.contentView.removeChildView(tab.devtools);
+      tab.devtools.webContents.close();
+    }
     this.emit('tab-closed', tab);
     tab.view.webContents.close();
 
@@ -171,7 +179,9 @@ class TabManager extends EventEmitter {
   }
 
   tabFor(webContents) {
-    for (const tab of this.tabs.values()) if (tab.view.webContents === webContents) return tab;
+    for (const tab of this.tabs.values()) {
+      if (tab.view.webContents === webContents || tab.devtools?.webContents === webContents) return tab;
+    }
     return null;
   }
 
@@ -218,7 +228,56 @@ class TabManager extends EventEmitter {
     const tab = this.active();
     if (!tab) return;
     const [width, height] = this.win.getContentSize();
-    tab.view.setBounds({ x: 0, y: this.topOffset, width, height: Math.max(0, height - this.topOffset) });
+    const h = Math.max(0, height - this.topOffset);
+    if (tab.devtools) {
+      // outils de développement ancrés à droite de la page, comme dans Chrome
+      const dw = Math.min(Math.max(380, Math.round(width * 0.4)), width - 200);
+      tab.view.setBounds({ x: 0, y: this.topOffset, width: width - dw, height: h });
+      tab.devtools.setBounds({ x: width - dw, y: this.topOffset, width: dw, height: h });
+    } else {
+      tab.view.setBounds({ x: 0, y: this.topOffset, width, height: h });
+    }
+  }
+
+  // --- Outils de développement (Chrome DevTools) de l'onglet ---
+  openDevTools(tab = this.active()) {
+    if (!tab) return null;
+    const wc = tab.view.webContents;
+    if (!tab.devtools) {
+      const view = new WebContentsView();
+      tab.devtools = view;
+      // raccourcis (F12, Ctrl+W…) aussi quand le focus est dans les outils
+      if (this.onWebContentsCreated) this.onWebContentsCreated(view.webContents, { devtools: true });
+      wc.setDevToolsWebContents(view.webContents);
+      wc.openDevTools({ mode: 'detach', activate: true });
+      wc.once('devtools-closed', () => this.closeDevTools(tab));
+      if (tab.id === this.activeId) this.win.contentView.addChildView(view);
+      this.layout();
+    }
+    return tab;
+  }
+
+  closeDevTools(tab = this.active()) {
+    if (!tab?.devtools) return;
+    const view = tab.devtools;
+    tab.devtools = null;
+    this.win.contentView.removeChildView(view);
+    const wc = tab.view.webContents;
+    if (!wc.isDestroyed() && wc.isDevToolsOpened()) wc.closeDevTools();
+    if (!view.webContents.isDestroyed()) view.webContents.close();
+    this.layout();
+  }
+
+  toggleDevTools(tab = this.active()) {
+    if (tab?.devtools) this.closeDevTools(tab);
+    else this.openDevTools(tab);
+  }
+
+  inspectElement(webContents, x, y) {
+    const tab = this.tabFor(webContents);
+    if (!tab) return;
+    this.openDevTools(tab);
+    webContents.inspectElement(x, y);
   }
 
   getState() {

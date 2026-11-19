@@ -76,8 +76,13 @@ html, body {
 }
 
 /* --- Barre d'onglets --- */
+/* La barre d'onglets sert de barre de titre : on peut y déplacer la fenêtre
+   (et double-cliquer pour l'agrandir). Les boutons Windows sont dessinés à
+   droite par le système : on leur laisse la place (titlebar-area-*). */
 #tabbar {
   height: var(--tabbar-height);
+  -webkit-app-region: drag;
+  padding-right: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, calc(100vw - 140px)) + 6px) !important;
   display: flex;
   align-items: flex-end;
   padding: 0 6px;
@@ -172,7 +177,9 @@ html, body {
 
 .icon-btn:hover:not(:disabled) { background: var(--hover); }
 .icon-btn:disabled { color: var(--muted); cursor: default; }
+.icon-btn svg { display: block; margin: auto; }
 #new-tab { margin-bottom: 3px; }
+#tabbar .tab, #tabbar button { -webkit-app-region: no-drag; }
 
 #private-badge {
   display: flex;
