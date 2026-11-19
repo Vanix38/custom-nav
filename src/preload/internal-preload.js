@@ -51,6 +51,13 @@ if (location.protocol === 'customnav:') {
       updateLists: () => call('adblock-update'),
       onChange: (cb) => ipcRenderer.on('internal:adblock', (_e, s) => cb(s)),
     },
+    // serveur MCP
+    mcp: {
+      status: () => call('mcp-status'),
+      setEnabled: (on) => call('mcp-set-enabled', on),
+      regenerateToken: () => call('mcp-regenerate-token'),
+      onChange: (cb) => ipcRenderer.on('internal:mcp', (_e, s) => cb(s)),
+    },
     onConfig: (cb) => ipcRenderer.on('internal:config', (_e, config) => cb(config)),
   });
 }

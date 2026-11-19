@@ -7,6 +7,7 @@ const config = require('./config');
 const bookmarks = require('./bookmarks');
 const extensions = require('./extensions');
 const adblock = require('./adblock');
+const mcp = require('./mcp');
 
 // Hauteur initiale de l'interface ; l'interface envoie ensuite sa vraie hauteur.
 const CHROME_HEIGHT = 80;
@@ -432,6 +433,11 @@ ipcMain.on('ui:app-menu', fromUi((ctx, x, y) => {
 }));
 ipcMain.on('ui:open-settings', fromUi((ctx) => openSettings(ctx)));
 ipcMain.on('ui:new-private-window', fromUi(() => createWindow({ isPrivate: true })));
+// --- Serveur MCP ---
+function mcpChanged() {
+  for (const ctx of windows) ctx.tabs.broadcastInternal('internal:mcp', mcp.status());
+}
+
 // --- Bloqueur de pub : bouton bouclier ---
 function adblockChanged() {
   sendToAllUis('adblock:state', adblock.status());
@@ -527,6 +533,10 @@ const INTERNAL_ACTIONS = {
   'adblock-set-enabled': (on) => adblock.setEnabled(on),
   'adblock-set-allowed': (host, allowed) => adblock.setAllowed(String(host || ''), !!allowed),
   'adblock-update': () => adblock.updateLists(),
+  // serveur MCP (pilotage par une IA)
+  'mcp-status': () => mcp.status(),
+  'mcp-set-enabled': (on) => mcp.setEnabled(on),
+  'mcp-regenerate-token': () => mcp.regenerateToken(),
   'clear-browsing-data': async () => {
     const ses = session.fromPartition(PARTITION);
     await ses.clearStorageData(); // cookies, localStorage, IndexedDB, service workers…
@@ -579,6 +589,7 @@ ipcMain.handle('internal', async (event, action, ...args) => {
   const result = await fn(...args);
   if (CHANGES_CONFIG.has(action) && !result?.error) configChanged();
   if (action.startsWith('adblock-') && action !== 'adblock-status' && !result?.error) adblockChanged();
+  if (action.startsWith('mcp-') && action !== 'mcp-status' && !result?.error) mcpChanged();
   if (action.startsWith('bookmarks-') && action !== 'bookmarks-get' && action !== 'bookmarks-import-sources' && !result?.error) {
     bookmarksChanged();
   }
@@ -675,6 +686,17 @@ app.whenReady().then(async () => {
     },
   }).then(adblockChanged);
   await extensions.init(PARTITION, extensionImpl);
+  // serveur MCP : l'IA ne voit que la fenêtre normale (jamais les fenêtres privées)
+  mcp.init({
+    getCtx: () => mainCtx || createWindow({ restore: false }),
+    resolveInput: (input) => resolveInput(input, activeEngineId()),
+    listEngines: () => getEngines().map((e) => ({ id: e.id, name: e.name, type: e.type === 'ai' ? 'IA' : 'moteur', active: e.id === activeEngineId() })),
+    searchTarget(query, engineId) {
+      if (engineId && !getEngines().some((e) => e.id === engineId)) return { error: `Moteur inconnu : ${engineId} (voir list_engines).` };
+      return { ...buildEngineTarget(getEngine(engineId || activeEngineId()), query), query };
+    },
+    onStatusChange: mcpChanged,
+  });
   extensions.onChange(extensionsChanged);
   createWindow();
   app.on('activate', () => {

@@ -97,6 +97,23 @@ listes EasyList, EasyPrivacy, filtres uBlock Origin, Peter Lowe et Liste FR :
 Limites : certains sites détectent les bloqueurs et demandent de les désactiver ; les pubs YouTube
 dépendent de scripts que YouTube change souvent, le blocage peut y être imparfait.
 
+### Pilotage par une IA (serveur MCP)
+
+Custom Nav contient un serveur [MCP](https://modelcontextprotocol.io/) pour qu'une IA comme Claude (Claude Code,
+Claude Desktop…) puisse piloter le navigateur. **Désactivé par défaut** : Paramètres > « Pilotage par une IA
+(MCP) ». Une fois activé, la page affiche la commande à copier pour Claude Code et le bloc de configuration pour
+Claude Desktop (via `mcp-remote`, qui nécessite Node.js).
+
+Outils proposés à l'IA : `list_tabs`, `open_tab`, `navigate` (adresse, recherche, back / forward / reload),
+`search` (avec un moteur ou une IA de la liste, ex. `duckduckgo`, `perplexity`), `list_engines`, `read_page`
+(texte visible et liens), `screenshot`, `click` (sélecteur CSS ou texte du bouton), `type_text` (avec envoi
+du formulaire en option), `activate_tab`, `close_tab`.
+
+Sécurité : le serveur n'écoute que sur `127.0.0.1` (port 47823), exige le jeton affiché dans les réglages
+(`Authorization: Bearer …`, modifiable avec « Changer le jeton »), refuse les requêtes dont l'en-tête `Host`
+n'est pas local, et n'a **jamais accès aux fenêtres privées**. L'IA agit avec tes connexions aux sites :
+n'active le serveur que pour une IA en qui tu as confiance.
+
 ### Extensions Chrome
 
 Le bouton pièce de puzzle (à droite de la barre d'adresse) ouvre `customnav://extensions/` : liste des
@@ -215,6 +232,7 @@ src/
     bookmarks.js favoris (arbre liens / dossiers, import Chrome / Edge / Brave)
     extensions.js extensions Chrome et Chrome Web Store (session normale uniquement)
     adblock.js   bloqueur de pub intégré (moteur Ghostery, toutes les sessions)
+    mcp.js       serveur MCP local (pilotage par une IA, fenêtre normale uniquement)
     settings.js  lecture / écriture de settings.json
     internal.js  protocole customnav:// des pages internes
   preload/
