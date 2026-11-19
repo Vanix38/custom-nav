@@ -41,6 +41,7 @@ class TabManager extends EventEmitter {
     super();
     this.win = win;
     this.topOffset = topOffset;
+    this.leftInset = 0; // place réservée à gauche (barre des messageries)
     this.partition = partition;
     this.getHomeUrl = getHomeUrl;
     this.onWebContentsCreated = onWebContentsCreated;
@@ -234,6 +235,13 @@ class TabManager extends EventEmitter {
   setTopOffset(px) {
     this.topOffset = px;
     this.layout();
+    this.emit('layout');
+  }
+
+  setLeftInset(px) {
+    if (px === this.leftInset) return;
+    this.leftInset = px;
+    this.layout();
   }
 
   layout() {
@@ -241,13 +249,15 @@ class TabManager extends EventEmitter {
     if (!tab) return;
     const [width, height] = this.win.getContentSize();
     const h = Math.max(0, height - this.topOffset);
+    const x = Math.min(this.leftInset, width); // barre des messageries à gauche
+    const w = width - x;
     if (tab.devtools) {
       // outils de développement ancrés à droite de la page, comme dans Chrome
-      const dw = Math.min(Math.max(380, Math.round(width * 0.4)), width - 200);
-      tab.view.setBounds({ x: 0, y: this.topOffset, width: width - dw, height: h });
-      tab.devtools.setBounds({ x: width - dw, y: this.topOffset, width: dw, height: h });
+      const dw = Math.max(0, Math.min(Math.max(380, Math.round(w * 0.4)), w - 200));
+      tab.view.setBounds({ x, y: this.topOffset, width: w - dw, height: h });
+      tab.devtools.setBounds({ x: x + w - dw, y: this.topOffset, width: dw, height: h });
     } else {
-      tab.view.setBounds({ x: 0, y: this.topOffset, width, height: h });
+      tab.view.setBounds({ x, y: this.topOffset, width: w, height: h });
     }
   }
 

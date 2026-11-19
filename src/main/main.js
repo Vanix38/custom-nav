@@ -3,6 +3,7 @@ const { app, BrowserWindow, Menu, clipboard, ipcMain, nativeTheme, session, webC
 const { TabManager, PARTITION } = require('./tabs');
 const { getEngines, getEngine, iconFor, buildEngineTarget, resolveInput, isHttpUrl } = require('./search');
 const internal = require('./internal');
+const messengers = require('./messengers');
 const config = require('./config');
 const history = require('./history');
 const bookmarks = require('./bookmarks');
@@ -27,6 +28,10 @@ app.userAgentFallback = app.userAgentFallback
   .replace(/\s(?:Custom Nav|custom-nav)\/\S+/gi, '');
 
 internal.registerScheme();
+
+// Notifications Windows (WhatsApp, Discord…) : sans identifiant d'application,
+// les notifications ne s'affichent pas quand l'app est lancée depuis les sources.
+if (process.platform === 'win32') app.setAppUserModelId('com.vanix38.customnav');
 
 // Une entrée par fenêtre ouverte : { win, tabs, isPrivate, partition }.
 // Il y a au plus une fenêtre normale (celle dont les onglets sont rouverts au
@@ -194,61 +199,66 @@ function digitIndex(input) {
 // Raccourcis clavier, interceptés à la fois dans l'interface et dans les pages
 function handleShortcuts(webContents) {
   webContents.on('before-input-event', (event, input) => {
-    if (input.type !== 'keyDown') return;
     const ctx = ctxFor(webContents);
-    if (!ctx) return;
-    const { tabs } = ctx;
-    const ctrl = input.control || input.meta;
-    const key = input.key.toLowerCase();
-    const digit = digitIndex(input);
-    const engines = getEngines();
-    let handled = true;
-
-    if (ctrl && digit >= 0 && digit < engines.length) {
-      if (input.shift) {
-        // passe par l'interface, qui connaît le texte en cours de saisie
-        sendToUi(ctx, 'ui:resend', engines[digit].id);
-      } else {
-        setActiveEngine(engines[digit].id);
-      }
-    } else if (ctrl && input.shift && key === 'n') {
-      createWindow({ isPrivate: true });
-    } else if (ctrl && !input.shift && key === 'n') {
-      openNormalWindow();
-    } else if (key === 'f12' || (ctrl && input.shift && key === 'i')) {
-      tabs.toggleDevTools();
-    } else if (ctrl && !input.shift && key === 'd') {
-      toggleBookmark(ctx);
-    } else if (ctrl && input.shift && key === 'b') {
-      toggleBookmarksBar();
-    } else if (ctrl && input.shift && key === 'o') {
-      openBookmarksManager(ctx);
-    } else if (ctrl && !input.shift && key === 't') {
-      newTab(ctx);
-    } else if (ctrl && key === 'w') {
-      tabs.close();
-    } else if (ctrl && key === 'l') {
-      ctx.win.webContents.focus();
-      sendToUi(ctx, 'ui:focus-address');
-    } else if (ctrl && key === ',') {
-      openSettings(ctx);
-    } else if (ctrl && !input.shift && key === 'h') {
-      openHistory(ctx);
-    } else if (key === 'f5' || (ctrl && key === 'r')) {
-      tabs.reload();
-    } else if (input.alt && key === 'arrowleft') {
-      tabs.goBack();
-    } else if (input.alt && key === 'arrowright') {
-      tabs.goForward();
-    } else if (ctrl && key === 'tab') {
-      const i = tabs.order.indexOf(tabs.activeId);
-      const n = tabs.order.length;
-      tabs.activate(tabs.order[(i + (input.shift ? n - 1 : 1)) % n]);
-    } else {
-      handled = false;
-    }
-    if (handled) event.preventDefault();
+    if (ctx) runShortcut(ctx, event, input);
   });
+}
+
+function runShortcut(ctx, event, input) {
+  if (input.type !== 'keyDown') return;
+  const { tabs } = ctx;
+  const ctrl = input.control || input.meta;
+  const key = input.key.toLowerCase();
+  const digit = digitIndex(input);
+  const engines = getEngines();
+  let handled = true;
+
+  if (ctrl && digit >= 0 && digit < engines.length) {
+    if (input.shift) {
+      // passe par l'interface, qui connaît le texte en cours de saisie
+      sendToUi(ctx, 'ui:resend', engines[digit].id);
+    } else {
+      setActiveEngine(engines[digit].id);
+    }
+  } else if (ctrl && input.shift && key === 'm') {
+    messengers.toggleRail();
+  } else if (ctrl && input.shift && key === 'n') {
+    createWindow({ isPrivate: true });
+  } else if (ctrl && !input.shift && key === 'n') {
+    openNormalWindow();
+  } else if (key === 'f12' || (ctrl && input.shift && key === 'i')) {
+    tabs.toggleDevTools();
+  } else if (ctrl && !input.shift && key === 'd') {
+    toggleBookmark(ctx);
+  } else if (ctrl && input.shift && key === 'b') {
+    toggleBookmarksBar();
+  } else if (ctrl && input.shift && key === 'o') {
+    openBookmarksManager(ctx);
+  } else if (ctrl && !input.shift && key === 't') {
+    newTab(ctx);
+  } else if (ctrl && key === 'w') {
+    tabs.close();
+  } else if (ctrl && key === 'l') {
+    ctx.win.webContents.focus();
+    sendToUi(ctx, 'ui:focus-address');
+  } else if (ctrl && key === ',') {
+    openSettings(ctx);
+  } else if (ctrl && !input.shift && key === 'h') {
+    openHistory(ctx);
+  } else if (key === 'f5' || (ctrl && key === 'r')) {
+    tabs.reload();
+  } else if (input.alt && key === 'arrowleft') {
+    tabs.goBack();
+  } else if (input.alt && key === 'arrowright') {
+    tabs.goForward();
+  } else if (ctrl && key === 'tab') {
+    const i = tabs.order.indexOf(tabs.activeId);
+    const n = tabs.order.length;
+    tabs.activate(tabs.order[(i + (input.shift ? n - 1 : 1)) % n]);
+  } else {
+    handled = false;
+  }
+  if (handled) event.preventDefault();
 }
 
 // --- Session : onglets rouverts au prochain lancement ---
@@ -373,6 +383,15 @@ function createWindow({ isPrivate = false, restore = true } = {}) {
   }
 
   handleShortcuts(win.webContents);
+  // Barre des messageries (WhatsApp, Discord) : fenêtre normale uniquement
+  if (!isPrivate) {
+    messengers.attach({
+      win,
+      tabs,
+      openInTab: (url) => tabs.create(url),
+      onShortcut: (event, input) => runShortcut(ctx, event, input),
+    });
+  }
   win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'), {
     query: isPrivate ? { private: '1' } : {},
   });
@@ -462,6 +481,7 @@ ipcMain.on('ui:app-menu', fromUi((ctx, x, y) => {
     { label: 'Historique', accelerator: 'Ctrl+H', click: () => openHistory(ctx) },
     { label: 'Favoris', accelerator: 'Ctrl+Shift+O', click: () => openBookmarksManager(ctx) },
     { label: 'Extensions', click: () => ctx.tabs.focusOrCreate(config.EXTENSIONS_PAGE) },
+    ...(ctx.isPrivate ? [] : [{ label: 'Barre des messageries', accelerator: 'Ctrl+Shift+M', click: () => messengers.toggleRail() }]),
     { label: 'Outils de développement', accelerator: 'F12', click: () => ctx.tabs.toggleDevTools() },
     { type: 'separator' },
     { label: 'Paramètres', accelerator: 'Ctrl+,', click: () => openSettings(ctx) },
