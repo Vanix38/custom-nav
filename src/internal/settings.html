@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self' https: data:; style-src 'self'; script-src 'self'" />
+  <title>Réglages</title>
+  <link rel="stylesheet" href="common.css" />
+  <link rel="stylesheet" href="settings.css" />
+</head>
+<body>
+  <main>
+    <h1>Réglages</h1>
+
+    <section id="engines-section">
+      <h2>Moteurs de recherche et IA</h2>
+      <p class="help">
+        L'ordre définit les raccourcis <kbd>Ctrl+1</kbd> à <kbd>Ctrl+9</kbd>. Dans l'URL, mets
+        <code>{q}</code> ou <code>%s</code> à la place de la question
+        (ex. <code>https://www.ecosia.org/search?q=%s</code>). Si le site n'accepte pas la question
+        dans l'URL, coche « Injection » : la page est ouverte puis la question est écrite dans son
+        champ de saisie (sans être envoyée).
+      </p>
+      <div id="engine-list"></div>
+      <div class="row actions">
+        <button type="button" id="engine-add">+ Ajouter un moteur ou une IA</button>
+        <span class="spacer"></span>
+        <button type="button" id="engine-reset" class="danger">Réinitialiser la liste</button>
+        <button type="button" id="engine-cancel">Annuler</button>
+        <button type="button" id="engine-save" class="primary">Enregistrer</button>
+      </div>
+      <p class="status" id="engine-status" role="status"></p>
+    </section>
+
+    <section>
+      <h2>Page d'accueil</h2>
+      <label class="radio"><input type="radio" name="home-mode" value="internal" />
+        Page d'accueil Custom Nav (recherche + favoris)</label>
+      <label class="radio"><input type="radio" name="home-mode" value="url" />
+        Une adresse :</label>
+      <div class="row indent">
+        <input type="url" id="home-url" placeholder="https://…" />
+        <button type="button" id="home-save" class="primary">Enregistrer</button>
+      </div>
+      <p class="status" id="home-status" role="status"></p>
+
+      <h3>Favoris de la page d'accueil</h3>
+      <div id="fav-list"></div>
+      <div class="row actions">
+        <button type="button" id="fav-add">+ Ajouter un favori</button>
+        <span class="spacer"></span>
+        <button type="button" id="fav-save" class="primary">Enregistrer les favoris</button>
+      </div>
+      <p class="status" id="fav-status" role="status"></p>
+    </section>
+
+    <section>
+      <h2>Apparence</h2>
+      <div class="segmented" role="radiogroup" aria-label="Thème">
+        <label><input type="radio" name="theme" value="system" /> Suivre Windows</label>
+        <label><input type="radio" name="theme" value="light" /> Clair</label>
+        <label><input type="radio" name="theme" value="dark" /> Sombre</label>
+      </div>
+    </section>
+
+    <section>
+      <h2>Session et données</h2>
+      <label class="check"><input type="checkbox" id="restore-tabs" />
+        Rouvrir les onglets du dernier lancement</label>
+      <p class="help">Les connexions aux sites (cookies) sont toujours conservées entre les lancements.</p>
+      <div class="row">
+        <button type="button" id="clear-data" class="danger">Effacer les données de navigation…</button>
+      </div>
+      <div class="confirm" id="clear-confirm" hidden>
+        <p>Effacer les cookies, le cache et les données des sites ? Tu seras déconnecté de tous les
+          sites (Claude, Google…). Les réglages et les onglets ne sont pas touchés.</p>
+        <div class="row">
+          <button type="button" id="clear-yes" class="danger primary">Oui, tout effacer</button>
+          <button type="button" id="clear-no">Annuler</button>
+        </div>
+      </div>
+      <p class="status" id="clear-status" role="status"></p>
+    </section>
+  </main>
+  <script src="settings.js"></script>
+</body>
+</html>

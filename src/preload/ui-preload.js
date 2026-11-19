@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('nav', {
   onState: (cb) => ipcRenderer.on('tabs:state', (_e, state) => cb(state)),
   onFocusAddress: (cb) => ipcRenderer.on('ui:focus-address', () => cb()),
   setChromeHeight: (px) => ipcRenderer.send('ui:chrome-height', px),
+  openSettings: () => ipcRenderer.send('ui:open-settings'),
 
   // moteurs de recherche / IA
   getEngines: () => ipcRenderer.invoke('engines:get-state'),

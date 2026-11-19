@@ -1,9 +1,13 @@
 // Gestion des onglets : chaque onglet est un WebContentsView ajouté à la
 // fenêtre principale, sous la barre d'interface (onglets + barre d'outils).
 
+const path = require('path');
 const { WebContentsView } = require('electron');
 const { EventEmitter } = require('events');
 const { extractQuery } = require('./search');
+const { isInternalUrl } = require('./internal');
+
+const PRELOAD = path.join(__dirname, '..', 'preload', 'internal-preload.js');
 
 const PARTITION = 'persist:main'; // garde cookies / connexions entre les lancements
 
@@ -52,6 +56,7 @@ class TabManager extends EventEmitter {
     const view = new WebContentsView({
       webPreferences: {
         partition: PARTITION,
+        preload: PRELOAD, // n'expose rien aux sites web, voir internal-preload.js
         contextIsolation: true,
         nodeIntegration: false,
         sandbox: true,
@@ -85,9 +90,17 @@ class TabManager extends EventEmitter {
       }
     });
 
+    // Un site web ne peut pas ouvrir une page interne (ni dans un cadre, ni
+    // par redirection) : seules l'app et les pages internes elles-mêmes le peuvent.
+    const guard = (e) => {
+      if (isInternalUrl(e.url) && (!e.isMainFrame || !isInternalUrl(wc.getURL()))) e.preventDefault();
+    };
+    wc.on('will-frame-navigate', guard);
+    wc.on('will-redirect', guard);
+
     // Liens target=_blank et window.open -> nouvel onglet
     wc.setWindowOpenHandler(({ url: openUrl }) => {
-      this.create(openUrl);
+      if (!isInternalUrl(openUrl) || isInternalUrl(wc.getURL())) this.create(openUrl);
       return { action: 'deny' };
     });
 
@@ -149,9 +162,20 @@ class TabManager extends EventEmitter {
     return this.tabs.get(this.activeId) || null;
   }
 
-  // Ouvre une cible dans l'onglet courant
-  navigate(target) {
-    const tab = this.active();
+  tabFor(webContents) {
+    for (const tab of this.tabs.values()) if (tab.view.webContents === webContents) return tab;
+    return null;
+  }
+
+  // Ouvre un onglet existant sur cette URL s'il y en a un, sinon un nouveau
+  focusOrCreate(url) {
+    const tab = [...this.tabs.values()].find((t) => t.url === url);
+    if (tab) this.activate(tab.id);
+    else this.create(url);
+  }
+
+  // Ouvre une cible dans l'onglet courant (ou dans `tab`)
+  navigate(target, tab = this.active()) {
     if (!tab) return;
     const t = toTarget(target);
     if (t.query) tab.query = t.query;
@@ -201,6 +225,22 @@ class TabManager extends EventEmitter {
         return { id: t.id, title: t.title, url: t.url, favicon: t.favicon, loading: t.loading, query: t.query };
       }),
     };
+  }
+
+  // Onglets à rouvrir au prochain lancement
+  snapshot() {
+    return {
+      tabs: this.order.map((id) => ({ url: this.tabs.get(id).url, query: this.tabs.get(id).query || null })),
+      active: Math.max(0, this.order.indexOf(this.activeId)),
+    };
+  }
+
+  // Envoie un message à toutes les pages internes ouvertes
+  broadcastInternal(channel, payload) {
+    for (const tab of this.tabs.values()) {
+      const wc = tab.view.webContents;
+      if (!wc.isDestroyed() && isInternalUrl(wc.getURL())) wc.send(channel, payload);
+    }
   }
 
   emitState() {

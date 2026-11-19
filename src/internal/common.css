@@ -1,0 +1,93 @@
+/* Styles partagés des pages internes. Le thème suit prefers-color-scheme,
+   lui-même piloté par le réglage de thème de l'app (nativeTheme). */
+:root {
+  color-scheme: dark;
+  --bg: #1e1f24;
+  --surface: #2a2c33;
+  --surface-2: #3a3d46;
+  --input: #15161a;
+  --border: #44474f;
+  --fg: #e6e7eb;
+  --fg-dim: #9a9ca5;
+  --accent: #7c8cff;
+  --accent-fg: #0f1020;
+  --danger: #ff6b6b;
+  --ok: #4cc38a;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  color: var(--fg);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --bg: #f4f5f8;
+    --surface: #ffffff;
+    --surface-2: #e8e9ee;
+    --input: #ffffff;
+    --border: #d3d5dc;
+    --fg: #1d1e22;
+    --fg-dim: #62656f;
+    --accent: #4f5fe0;
+    --accent-fg: #ffffff;
+    --danger: #d43c3c;
+    --ok: #1f9a5f;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+button, input, select {
+  font: inherit;
+  color: inherit;
+}
+
+input[type="text"], input[type="url"], input[type="search"], select {
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input);
+  outline: none;
+  min-width: 0;
+}
+
+input:focus, select:focus { border-color: var(--accent); }
+
+button {
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  cursor: pointer;
+}
+
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+button.danger { color: var(--danger); }
+button.danger.primary { background: var(--danger); border-color: var(--danger); color: #fff; }
+button.icon { width: 34px; padding: 0; }
+button:disabled { opacity: 0.4; cursor: default; border-color: var(--border); }
+
+.engine-icon {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border-radius: 4px;
+}
+
+.letter-icon {
+  display: inline-grid;
+  place-items: center;
+  background: var(--surface-2);
+  font-size: 11px;
+  font-weight: 600;
+}

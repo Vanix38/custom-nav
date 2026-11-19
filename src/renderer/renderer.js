@@ -58,7 +58,8 @@ function render() {
   reloadBtn.title = active?.loading ? 'Arrêter' : 'Recharger (F5)';
 
   if (!addressDirty || document.activeElement !== address) {
-    address.value = active?.url || '';
+    // la page d'accueil interne affiche une barre d'adresse vide
+    address.value = active && !active.url.startsWith('customnav://home') ? active.url : '';
     addressDirty = false;
   }
   document.title = active ? `${active.title} – Custom Nav` : 'Custom Nav';
@@ -79,6 +80,7 @@ window.nav.onFocusAddress(() => {
 $('new-tab').addEventListener('click', () => {
   window.nav.newTab();
 });
+$('settings').addEventListener('click', () => window.nav.openSettings());
 backBtn.addEventListener('click', () => window.nav.back());
 forwardBtn.addEventListener('click', () => window.nav.forward());
 reloadBtn.addEventListener('click', () => {

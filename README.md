@@ -21,6 +21,8 @@ npm start
 - Barre d'adresse : une URL (`github.com`, `https://…`, `localhost:3000`) ou du texte → recherche avec le moteur / l'IA actif
 - Les liens `target=_blank` et `window.open` s'ouvrent dans un nouvel onglet
 - Connexions conservées entre les lancements (session persistante `persist:main`)
+- Page d'accueil interne pour les nouveaux onglets : grande barre de recherche, pastilles moteurs / IA et favoris
+- Page de réglages (bouton ⚙ ou `Ctrl+,`) : moteurs / IA, page d'accueil, favoris, thème, session
 
 ### Sélecteur moteurs de recherche / IA
 
@@ -47,6 +49,23 @@ Comment la question arrive dans chaque IA :
 
 Le user-agent envoyé aux sites est celui d'un Chrome standard (sans « Electron »), sinon Google refuse parfois la connexion.
 
+### Réglages
+
+Ouverts dans un onglet (`customnav://settings/`), enregistrés dans `settings.json` du dossier
+utilisateur de l'app (`%APPDATA%custom-navsettings.json`).
+
+- **Moteurs de recherche et IA** : ajouter (nom, URL avec `{q}` ou `%s` à la place de la question,
+  catégorie moteur / IA, option « Injection dans la page » avec un sélecteur CSS facultatif),
+  modifier, supprimer, réordonner avec ▲ ▼ (l'ordre définit `Ctrl+1` … `Ctrl+9`), choisir le moteur
+  par défaut, puis **Enregistrer**. « Réinitialiser la liste » (à confirmer d'un 2e clic) remet la
+  liste d'origine. Seules les URL `http://` et `https://` sont acceptées.
+- **Page d'accueil** : la page Custom Nav, ou une adresse de ton choix. Les **favoris** affichés sur la
+  page d'accueil sont éditables.
+- **Apparence** : suivre Windows, clair ou sombre. Le choix s'applique à l'interface, aux pages internes
+  et est transmis aux sites (`prefers-color-scheme`).
+- **Session et données** : « Rouvrir les onglets du dernier lancement » (activé par défaut), et
+  « Effacer les données de navigation » (cookies, cache, stockage des sites ; confirmation dans la page).
+
 ### Raccourcis
 
 | Raccourci | Action |
@@ -54,10 +73,11 @@ Le user-agent envoyé aux sites est celui d'un Chrome standard (sans « Electron
 | `Ctrl+T` | Nouvel onglet |
 | `Ctrl+W` | Fermer l'onglet |
 | `Ctrl+L` | Aller à la barre d'adresse |
+| `Ctrl+,` | Réglages |
 | `F5` / `Ctrl+R` | Recharger |
 | `Alt+←` / `Alt+→` | Précédent / suivant |
 | `Ctrl+Tab` / `Ctrl+Shift+Tab` | Onglet suivant / précédent |
-| `Ctrl+1` … `Ctrl+9` | Choisir le moteur / l'IA (ordre des pastilles ; la 10e, Gemini, n'a pas de raccourci) |
+| `Ctrl+1` … `Ctrl+9` | Choisir le moteur / l'IA (ordre des pastilles, modifiable dans les réglages ; au-delà du 9e, pas de raccourci) |
 | `Ctrl+Shift+1` … `Ctrl+Shift+9` | Renvoyer la question vers ce moteur / cette IA (nouvel onglet) |
 | `Shift+clic` sur une pastille | Renvoyer la question vers ce moteur / cette IA |
 
@@ -68,20 +88,31 @@ src/
   main/
     main.js      fenêtre principale, raccourcis, IPC
     tabs.js      gestion des onglets (un WebContentsView par onglet)
-    search.js    liste des moteurs / IA + transformation saisie → URL
-    settings.js  réglages persistants (moteur actif) dans settings.json
+    search.js    liste des moteurs / IA, validation, transformation saisie → URL
+    config.js    réglages (valeurs par défaut, validation, session)
+    settings.js  lecture / écriture de settings.json
+    internal.js  protocole customnav:// des pages internes
   preload/
-    ui-preload.js  API limitée exposée à l'interface (contextIsolation)
+    ui-preload.js        API de l'interface (barre d'onglets / d'outils)
+    internal-preload.js  API des pages internes (n'existe que sur customnav://)
   renderer/
     index.html, styles.css, renderer.js   interface (onglets, barre d'outils)
+  internal/
+    home.*, settings.*, common.css        pages d'accueil et de réglages
 ```
 
-Sécurité : les pages web tournent sans accès à Node (`nodeIntegration: false`,
-`contextIsolation: true`, `sandbox: true`).
+Sécurité :
+
+- les pages web tournent sans accès à Node (`nodeIntegration: false`, `contextIsolation: true`,
+  `sandbox: true`) ;
+- l'API des réglages (`window.customNav`) n'est exposée qu'aux pages `customnav://`, et le processus
+  principal vérifie à chaque message que l'expéditeur est bien une page interne (cadre principal) ;
+- un site web ne peut pas ouvrir une page `customnav://` (navigation, redirection, cadre ou
+  `window.open` sont bloqués).
 
 ## Feuille de route
 
 1. ~~Squelette du navigateur~~
 2. ~~Sélecteur moteurs de recherche / IA~~ — pour ajouter un moteur, une entrée dans `ENGINES` (`src/main/search.js`)
-3. Personnalisation : liste éditable, page d'accueil, thème clair/sombre, sessions persistantes
+3. ~~Personnalisation : liste éditable, page d'accueil, thème clair/sombre, sessions~~
 4. Installeur `.exe`
