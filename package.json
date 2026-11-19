@@ -1,0 +1,16 @@
+{
+  "name": "custom-nav",
+  "version": "0.1.0",
+  "description": "Navigateur de bureau perso pour passer facilement d'un moteur de recherche ou d'une IA à l'autre",
+  "main": "src/main/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "postinstall": "install-electron"
+  },
+  "author": "Vanix38",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^45.4.1"
+  }
+}

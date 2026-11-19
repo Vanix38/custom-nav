@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self' https: http: data:; style-src 'self'; script-src 'self'" />
+  <title>Custom Nav</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header id="chrome">
+    <div id="tabbar">
+      <div id="tabs" role="tablist"></div>
+      <button id="new-tab" class="icon-btn" title="Nouvel onglet (Ctrl+T)">+</button>
+    </div>
+    <div id="toolbar">
+      <button id="back" class="icon-btn" title="Précédent (Alt+←)">&#8592;</button>
+      <button id="forward" class="icon-btn" title="Suivant (Alt+→)">&#8594;</button>
+      <button id="reload" class="icon-btn" title="Recharger (F5)">&#8635;</button>
+      <form id="address-form">
+        <!-- Emplacement prévu pour le sélecteur moteurs / IA (étape 2) -->
+        <div id="engine-slot"></div>
+        <input id="address" type="text" spellcheck="false" autocomplete="off"
+               placeholder="Rechercher sur Google ou saisir une adresse" />
+      </form>
+    </div>
+  </header>
+  <script src="renderer.js"></script>
+</body>
+</html>
