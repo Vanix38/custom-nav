@@ -1,16 +1,57 @@
 {
   "name": "custom-nav",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Navigateur de bureau perso pour passer facilement d'un moteur de recherche ou d'une IA à l'autre",
   "main": "src/main/main.js",
   "private": true,
   "scripts": {
     "start": "electron .",
+    "dist": "electron-builder --win nsis --x64",
+    "icon": "electron scripts/make-icon.js",
     "postinstall": "install-electron"
   },
   "author": "Vanix38",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^45.4.1"
+    "electron": "^45.4.1",
+    "electron-builder": "^26.18.0"
+  },
+  "productName": "Custom Nav",
+  "build": {
+    "appId": "com.vanix38.customnav",
+    "productName": "Custom Nav",
+    "copyright": "Vanix38",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "build/icon.ico",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "Custom Nav",
+      "uninstallDisplayName": "Custom Nav",
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "Custom-Nav-Setup-${version}.${ext}"
+    }
   }
 }

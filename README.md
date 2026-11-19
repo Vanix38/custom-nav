@@ -3,7 +3,36 @@
 Navigateur de bureau perso (Windows), fait maison avec [Electron](https://www.electronjs.org/).
 Objectif : passer très facilement d'un moteur de recherche ou d'une IA (Claude, etc.) à l'autre.
 
-## Lancer
+## Installer / mettre à jour
+
+1. Générer l'installeur (voir ci-dessous) ou récupérer `dist/Custom-Nav-Setup-<version>.exe`.
+2. Lancer l'installeur. L'installation se fait **pour l'utilisateur courant, sans droits
+   administrateur** ; le dossier est modifiable (par défaut
+   `%LOCALAPPDATA%ProgramsCustom Nav`). Raccourcis créés sur le Bureau et dans le menu Démarrer.
+3. **Windows SmartScreen** peut avertir au premier lancement de l'installeur, car il n'est pas signé
+   (usage perso) : cliquer sur **« Informations complémentaires »** puis **« Exécuter quand même »**.
+
+Pour **mettre à jour**, relancer simplement l'installeur d'une version plus récente par-dessus.
+
+Les réglages, onglets et connexions sont dans `%APPDATA%custom-nav` : ils sont conservés lors
+des mises à jour **et** de la désinstallation (Paramètres Windows > Applications > Custom Nav, ou
+`Uninstall Custom Nav.exe` dans le dossier d'installation). Pour repartir de zéro, supprimer ce
+dossier à la main après désinstallation. Le même dossier est utilisé par `npm start`.
+
+### Générer l'installeur
+
+```bash
+npm install
+npm run dist
+```
+
+Résultat : `dist/Custom-Nav-Setup-<version>.exe` (NSIS, Windows x64, via
+[electron-builder](https://www.electron.build/)). Le dossier `dist/` n'est pas versionné.
+
+L'icône est générée depuis `build/icon.svg` : après l'avoir modifiée, `npm run icon` régénère
+`build/icon.ico` (multi-tailles) et `build/icon.png`.
+
+## Lancer depuis les sources
 
 Prérequis : [Node.js](https://nodejs.org/) 22.12 ou plus récent.
 
@@ -99,6 +128,8 @@ src/
     index.html, styles.css, renderer.js   interface (onglets, barre d'outils)
   internal/
     home.*, settings.*, common.css        pages d'accueil et de réglages
+build/        icône (icon.svg source, icon.ico, icon.png)
+scripts/      make-icon.js (génération de l'icône)
 ```
 
 Sécurité :
@@ -115,4 +146,4 @@ Sécurité :
 1. ~~Squelette du navigateur~~
 2. ~~Sélecteur moteurs de recherche / IA~~ — pour ajouter un moteur, une entrée dans `ENGINES` (`src/main/search.js`)
 3. ~~Personnalisation : liste éditable, page d'accueil, thème clair/sombre, sessions~~
-4. Installeur `.exe`
+4. ~~Installeur `.exe`~~

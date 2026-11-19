@@ -8,11 +8,18 @@ const config = require('./config');
 // Hauteur initiale de l'interface ; l'interface envoie ensuite sa vraie hauteur.
 const CHROME_HEIGHT = 80;
 
+// Dossier des réglages et sessions : toujours %APPDATA%custom-nav, que l'app
+// soit lancée avec npm start ou installée (sinon productName « Custom Nav »
+// changerait le dossier et ferait perdre réglages et connexions).
+app.setPath('userData', path.join(app.getPath('appData'), 'custom-nav'));
+
+const APP_ICON = path.join(__dirname, '..', '..', 'build', 'icon.ico');
+
 // User-agent sans « Electron/x » ni le nom de l'app : certains sites (Google,
 // Gemini…) refusent la connexion ou dégradent la page pour un UA Electron.
 app.userAgentFallback = app.userAgentFallback
   .replace(/\sElectron\/\S+/, '')
-  .replace(new RegExp(`\\s${app.getName()}/\\S+`), '');
+  .replace(/\s(?:Custom Nav|custom-nav)\/\S+/gi, '');
 
 internal.registerScheme();
 
@@ -150,6 +157,7 @@ function createWindow() {
     minWidth: 600,
     minHeight: 400,
     title: 'Custom Nav',
+    icon: APP_ICON,
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#1e1f24' : '#e9eaee',
     autoHideMenuBar: true,
     webPreferences: {
