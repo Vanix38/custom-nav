@@ -18,45 +18,83 @@ if (isPrivate) {
 let state = { tabs: [], activeId: null, canGoBack: false, canGoForward: false };
 let addressDirty = false; // l'utilisateur est en train de taper
 
+// Les éléments des onglets sont réutilisés d'un rendu à l'autre (clé = id) :
+// les recréer à chaque mise à jour faisait disparaître le bouton × entre
+// l'appui et le relâchement du clic, et la fermeture était perdue.
+const tabEls = new Map(); // id -> { el, icon, title, iconKey }
+
+function createTabEl(id) {
+  const el = document.createElement('div');
+  el.setAttribute('role', 'tab');
+  const title = document.createElement('span');
+  title.className = 'title';
+  const close = document.createElement('button');
+  close.className = 'close';
+  close.title = 'Fermer (Ctrl+W)';
+  close.textContent = '×';
+  // le clic sur × ne doit pas d'abord activer l'onglet
+  close.addEventListener('mousedown', (e) => e.stopPropagation());
+  close.addEventListener('click', (e) => {
+    e.stopPropagation();
+    window.nav.closeTab(id);
+  });
+  const icon = document.createElement('span');
+  el.append(icon, title, close);
+  el.addEventListener('mousedown', (e) => {
+    if (e.button === 1) e.preventDefault(); // pas de défilement automatique
+    else if (e.button === 0 && id !== state.activeId) window.nav.activateTab(id);
+  });
+  el.addEventListener('auxclick', (e) => {
+    if (e.button === 1) window.nav.closeTab(id); // clic molette
+  });
+  el.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    window.nav.tabContextMenu(id, e.clientX, e.clientY);
+  });
+  return { el, icon, title, iconKey: null };
+}
+
+function updateTabEl(t, tab) {
+  t.el.className = 'tab' + (tab.id === state.activeId ? ' active' : '');
+  t.el.title = tab.title;
+  t.title.textContent = tab.title || tab.url;
+  const iconKey = tab.loading ? 'loading' : tab.favicon || '';
+  if (iconKey === t.iconKey) return;
+  t.iconKey = iconKey;
+  let icon;
+  if (tab.loading || !tab.favicon) {
+    icon = document.createElement('span');
+  } else {
+    icon = document.createElement('img');
+    icon.src = tab.favicon;
+    icon.onerror = () => icon.replaceWith(Object.assign(document.createElement('span'), { className: 'favicon' }));
+  }
+  icon.className = 'favicon' + (tab.loading ? ' loading' : '');
+  t.icon.replaceWith(icon);
+  t.icon = icon;
+}
+
+function renderTabs() {
+  const ids = new Set(state.tabs.map((t) => t.id));
+  for (const [id, t] of tabEls) {
+    if (!ids.has(id)) {
+      t.el.remove();
+      tabEls.delete(id);
+    }
+  }
+  state.tabs.forEach((tab, i) => {
+    let t = tabEls.get(tab.id);
+    if (!t) {
+      t = createTabEl(tab.id);
+      tabEls.set(tab.id, t);
+    }
+    updateTabEl(t, tab);
+    if (tabsEl.children[i] !== t.el) tabsEl.insertBefore(t.el, tabsEl.children[i] || null);
+  });
+}
+
 function render() {
-  tabsEl.replaceChildren(
-    ...state.tabs.map((tab) => {
-      const el = document.createElement('div');
-      el.className = 'tab' + (tab.id === state.activeId ? ' active' : '');
-      el.title = tab.title;
-      el.setAttribute('role', 'tab');
-
-      let icon;
-      if (tab.loading || !tab.favicon) {
-        icon = document.createElement('span');
-      } else {
-        icon = document.createElement('img');
-        icon.src = tab.favicon;
-        icon.onerror = () => icon.replaceWith(document.createElement('span'));
-      }
-      icon.className = 'favicon' + (tab.loading ? ' loading' : '');
-
-      const title = document.createElement('span');
-      title.className = 'title';
-      title.textContent = tab.title || tab.url;
-
-      const close = document.createElement('button');
-      close.className = 'close';
-      close.title = 'Fermer (Ctrl+W)';
-      close.textContent = '×';
-      close.addEventListener('click', (e) => {
-        e.stopPropagation();
-        window.nav.closeTab(tab.id);
-      });
-
-      el.append(icon, title, close);
-      el.addEventListener('mousedown', (e) => {
-        if (e.button === 1) window.nav.closeTab(tab.id); // clic molette
-        else if (e.button === 0) window.nav.activateTab(tab.id);
-      });
-      return el;
-    })
-  );
+  renderTabs();
 
   const active = state.tabs.find((t) => t.id === state.activeId);
   backBtn.disabled = !state.canGoBack;

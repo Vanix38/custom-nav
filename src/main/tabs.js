@@ -174,6 +174,11 @@ class TabManager extends EventEmitter {
     }
   }
 
+  // Ferme plusieurs onglets d'un coup (clic droit sur un onglet)
+  closeMany(ids) {
+    for (const id of ids) if (this.tabs.has(id)) this.close(id);
+  }
+
   active() {
     return this.tabs.get(this.activeId) || null;
   }

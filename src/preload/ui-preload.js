@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('nav', {
   newTab: (input) => ipcRenderer.send('tabs:new', input),
   closeTab: (id) => ipcRenderer.send('tabs:close', id),
   activateTab: (id) => ipcRenderer.send('tabs:activate', id),
+  tabContextMenu: (id, x, y) => ipcRenderer.send('tabs:context-menu', id, x, y),
   go: (input) => ipcRenderer.send('nav:go', input),
   back: () => ipcRenderer.send('nav:back'),
   forward: () => ipcRenderer.send('nav:forward'),
