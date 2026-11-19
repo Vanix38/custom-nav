@@ -72,6 +72,7 @@ function render() {
   const appName = isPrivate ? 'Custom Nav (navigation privée)' : 'Custom Nav';
   document.title = active ? `${active.title} – ${appName}` : appName;
   renderStar(); // appelé après le chargement du script (événements IPC)
+  renderAdblock();
 }
 
 window.nav.onState((s) => {
@@ -329,6 +330,41 @@ new ResizeObserver(layoutBookmarks).observe(bmItems);
 
 window.nav.onBookmarks((s) => { bm = s; renderBookmarks(); });
 window.nav.getBookmarks().then((s) => { if (s) { bm = s; renderBookmarks(); } });
+
+// --- Bloqueur de pub : bouclier + nombre d'éléments bloqués sur la page ---
+const adBtn = $('adblock');
+const adCount = $('adblock-count');
+let adblock = { enabled: true, allowlist: [], ready: false };
+
+function hostOf(url) {
+  try {
+    const u = new URL(url);
+    return /^https?:$/.test(u.protocol) ? u.hostname.replace(/^www\./, '') : '';
+  } catch {
+    return '';
+  }
+}
+
+function renderAdblock() {
+  const active = state.tabs.find((t) => t.id === state.activeId);
+  const host = hostOf(active?.url || '');
+  const allowed = !!host && adblock.allowlist.some((h) => host === h || host.endsWith('.' + h));
+  const on = adblock.enabled && !allowed;
+  adBtn.classList.toggle('off', !on);
+  const n = on && active ? active.blocked || 0 : 0;
+  adCount.hidden = n === 0;
+  adCount.textContent = n > 99 ? '99+' : String(n);
+  adBtn.title = !adblock.enabled ? 'Bloqueur de publicités désactivé'
+    : allowed ? `Publicités autorisées sur ${host}`
+    : `Bloqueur de publicités : ${n} élément(s) bloqué(s) sur cette page`;
+}
+
+adBtn.addEventListener('click', () => {
+  const r = adBtn.getBoundingClientRect();
+  window.nav.adblockMenu(r.left, r.bottom);
+});
+window.nav.onAdblock((s) => { adblock = s; renderAdblock(); });
+window.nav.getAdblock().then((s) => { if (s) { adblock = s; renderAdblock(); } });
 
 // La zone des pages commence sous l'interface : on transmet sa hauteur réelle
 const chromeEl = $('chrome');

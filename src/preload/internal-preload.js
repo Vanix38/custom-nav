@@ -43,6 +43,14 @@ if (location.protocol === 'customnav:') {
       openOptions: (id) => call('open-extension-options', id),
       onChange: (cb) => ipcRenderer.on('internal:extensions', (_e, list) => cb(list)),
     },
+    // bloqueur de pub
+    adblock: {
+      status: () => call('adblock-status'),
+      setEnabled: (on) => call('adblock-set-enabled', on),
+      setAllowed: (host, allowed) => call('adblock-set-allowed', host, allowed),
+      updateLists: () => call('adblock-update'),
+      onChange: (cb) => ipcRenderer.on('internal:adblock', (_e, s) => cb(s)),
+    },
     onConfig: (cb) => ipcRenderer.on('internal:config', (_e, config) => cb(config)),
   });
 }

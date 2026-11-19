@@ -25,6 +25,10 @@ contextBridge.exposeInMainWorld('nav', {
   openSettings: () => ipcRenderer.send('ui:open-settings'),
   newPrivateWindow: () => ipcRenderer.send('ui:new-private-window'),
   openExtensions: () => ipcRenderer.send('ui:open-extensions'),
+  // bloqueur de pub
+  getAdblock: () => ipcRenderer.invoke('adblock:get-state'),
+  onAdblock: (cb) => ipcRenderer.on('adblock:state', (_e, state) => cb(state)),
+  adblockMenu: (x, y) => ipcRenderer.send('adblock:menu', x, y),
 
   // moteurs de recherche / IA
   getEngines: () => ipcRenderer.invoke('engines:get-state'),

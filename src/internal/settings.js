@@ -263,3 +263,39 @@ api.getConfig().then((c) => {
   favDraft = structuredClone(c.favorites);
   renderFavorites();
 });
+
+// --- Bloqueur de publicités ---
+const adApi = api.adblock;
+
+function renderAdblock(st) {
+  $('adblock-enabled').checked = st.enabled;
+  $('adblock-allowlist').replaceChildren(...(st.allowlist.length ? st.allowlist.map((host) => {
+    const del = el('button', { type: 'button', className: 'icon danger', textContent: '✕', title: `Bloquer à nouveau sur ${host}` });
+    del.addEventListener('click', () => adApi.setAllowed(host, false));
+    return el('div', { className: 'row allow-row' }, el('span', { className: 'host', textContent: host }), del);
+  }) : [el('p', { className: 'help', textContent: 'Aucun : les publicités sont bloquées partout.' })]));
+  const date = st.listsDate ? new Date(st.listsDate).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }) : null;
+  $('adblock-lists').textContent = st.error ? st.error
+    : date ? `Listes du ${date} (mises à jour automatiquement tous les 3 jours).`
+    : 'Téléchargement des listes en cours…';
+}
+
+$('adblock-enabled').addEventListener('change', (e) => adApi.setEnabled(e.target.checked));
+$('adblock-allow-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const r = await adApi.setAllowed($('adblock-host').value, true);
+  if (r?.error) setStatus('adblock-status', r.error, 'error');
+  else {
+    setStatus('adblock-status', '');
+    $('adblock-host').value = '';
+  }
+});
+$('adblock-update').addEventListener('click', async (e) => {
+  e.target.disabled = true;
+  setStatus('adblock-status', 'Téléchargement des listes…');
+  const r = await adApi.updateLists();
+  setStatus('adblock-status', r?.error || 'Listes à jour.', r?.error ? 'error' : 'ok');
+  e.target.disabled = false;
+});
+adApi.onChange(renderAdblock);
+adApi.status().then(renderAdblock);
