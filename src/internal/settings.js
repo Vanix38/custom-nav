@@ -299,3 +299,40 @@ $('adblock-update').addEventListener('click', async (e) => {
 });
 adApi.onChange(renderAdblock);
 adApi.status().then(renderAdblock);
+
+// --- Serveur MCP ---
+const mcpApi = api.mcp;
+
+function renderMcp(st) {
+  $('mcp-enabled').checked = st.enabled;
+  $('mcp-details').hidden = !st.enabled;
+  $('mcp-url').textContent = st.url;
+  $('mcp-cmd-code').textContent = `claude mcp add --transport http custom-nav ${st.url} --header "Authorization: Bearer ${st.token}"`;
+  $('mcp-cmd-desktop').textContent = JSON.stringify({
+    'custom-nav': {
+      command: 'npx',
+      args: ['-y', 'mcp-remote', st.url, '--header', 'Authorization:${AUTH_HEADER}'],
+      env: { AUTH_HEADER: `Bearer ${st.token}` },
+    },
+  }, null, 2);
+  setStatus('mcp-state', st.error ? st.error : st.running ? 'Serveur actif.' : 'Démarrage…', st.error ? 'error' : st.running ? 'ok' : '');
+}
+
+$('mcp-enabled').addEventListener('change', (e) => mcpApi.setEnabled(e.target.checked));
+$('mcp-regen').addEventListener('click', (e) => {
+  if (e.target.dataset.confirm !== '1') {
+    e.target.dataset.confirm = '1';
+    e.target.textContent = 'Confirmer : les IA déjà configurées devront être reconfigurées';
+    return;
+  }
+  delete e.target.dataset.confirm;
+  e.target.textContent = 'Changer le jeton';
+  mcpApi.regenerateToken();
+});
+document.querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', async () => {
+  await navigator.clipboard.writeText($(b.dataset.copy).textContent);
+  b.textContent = 'Copié ✓';
+  setTimeout(() => { b.textContent = 'Copier'; }, 1500);
+}));
+mcpApi.onChange(renderMcp);
+mcpApi.status().then(renderMcp);
