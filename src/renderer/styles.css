@@ -136,7 +136,68 @@ html, body {
   margin: 0 0 0 4px;
 }
 
+/* --- Sélecteur moteurs / IA --- */
+#engine-slot {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+
 #engine-slot:empty { display: none; }
+
+.engine {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 15px;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.engine:hover { background: #4a4d57; }
+
+.engine.active {
+  background: var(--bg-input);
+  border-color: var(--accent);
+  padding-right: 10px;
+}
+
+.engine img,
+.engine .letter {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border-radius: 4px;
+}
+
+.engine .letter {
+  display: grid;
+  place-items: center;
+  background: #555866;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.engine .name { display: none; white-space: nowrap; }
+.engine.active .name { display: inline; }
+
+.engine-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background: #5c5f69;
+}
+
+@media (max-width: 900px) {
+  .engine.active .name { display: none; }
+  .engine.active { padding-right: 6px; }
+}
 
 #address {
   flex: 1;

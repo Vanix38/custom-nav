@@ -18,10 +18,10 @@
       <button id="forward" class="icon-btn" title="Suivant (Alt+→)">&#8594;</button>
       <button id="reload" class="icon-btn" title="Recharger (F5)">&#8635;</button>
       <form id="address-form">
-        <!-- Emplacement prévu pour le sélecteur moteurs / IA (étape 2) -->
-        <div id="engine-slot"></div>
+        <!-- Sélecteur moteurs / IA (rempli par renderer.js) -->
+        <div id="engine-slot" role="toolbar" aria-label="Moteur de recherche ou IA"></div>
         <input id="address" type="text" spellcheck="false" autocomplete="off"
-               placeholder="Rechercher sur Google ou saisir une adresse" />
+               placeholder="Rechercher ou saisir une adresse" />
       </form>
     </div>
   </header>

@@ -107,3 +107,82 @@ $('address-form').addEventListener('submit', (e) => {
 });
 
 window.nav.getState().then((s) => { if (s) { state = s; render(); } });
+
+// --- Sélecteur moteurs de recherche / IA ---
+const engineSlot = $('engine-slot');
+let engines = { activeId: null, engines: [] };
+
+// Texte tapé par l'utilisateur (et pas l'URL affichée de l'onglet)
+const typedText = () => (addressDirty ? address.value.trim() : '');
+
+function renderEngines() {
+  const items = [];
+  engines.engines.forEach((eng, i) => {
+    if (i > 0 && eng.type !== engines.engines[i - 1].type) {
+      const sep = document.createElement('span');
+      sep.className = 'engine-sep';
+      items.push(sep);
+    }
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'engine' + (eng.id === engines.activeId ? ' active' : '');
+    btn.setAttribute('aria-pressed', String(eng.id === engines.activeId));
+    const shortcut = i < 9 ? ` (Ctrl+${i + 1})` : '';
+    btn.title = `${eng.name}${shortcut}\nShift+clic : renvoyer la question vers ${eng.name} dans un nouvel onglet`;
+
+    const icon = document.createElement('img');
+    icon.src = eng.icon;
+    icon.alt = '';
+    icon.onerror = () => {
+      const letter = document.createElement('span');
+      letter.className = 'letter';
+      letter.textContent = eng.name[0];
+      icon.replaceWith(letter);
+    };
+    const name = document.createElement('span');
+    name.className = 'name';
+    name.textContent = eng.name;
+    btn.append(icon, name);
+
+    // garder le focus (et le texte tapé) dans la barre d'adresse
+    btn.addEventListener('mousedown', (e) => e.preventDefault());
+    btn.addEventListener('click', (e) => {
+      if (e.shiftKey) {
+        resend(eng.id);
+        return;
+      }
+      window.nav.setEngine(eng.id);
+      const text = typedText();
+      if (text) {
+        // une question est en cours de saisie : on la pose au moteur choisi
+        addressDirty = false;
+        address.blur();
+        window.nav.go(text);
+      } else {
+        address.focus();
+      }
+    });
+    items.push(btn);
+  });
+  engineSlot.replaceChildren(...items);
+
+  const active = engines.engines.find((e) => e.id === engines.activeId);
+  address.placeholder = active
+    ? `${active.type === 'ai' ? 'Demander à' : 'Rechercher sur'} ${active.name} ou saisir une adresse`
+    : 'Rechercher ou saisir une adresse';
+}
+
+function resend(engineId) {
+  const text = typedText();
+  addressDirty = false;
+  address.blur();
+  window.nav.resendTo(engineId, text);
+}
+
+window.nav.onEngines((s) => { engines = s; renderEngines(); });
+window.nav.onResendShortcut((id) => resend(id));
+window.nav.getEngines().then((s) => { engines = s; renderEngines(); });
+
+// La zone des pages commence sous l'interface : on transmet sa hauteur réelle
+const chromeEl = $('chrome');
+new ResizeObserver(() => window.nav.setChromeHeight(chromeEl.offsetHeight)).observe(chromeEl);

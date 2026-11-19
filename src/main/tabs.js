@@ -3,17 +3,43 @@
 
 const { WebContentsView } = require('electron');
 const { EventEmitter } = require('events');
+const { extractQuery } = require('./search');
 
 const PARTITION = 'persist:main'; // garde cookies / connexions entre les lancements
 
+// Script exécuté dans la page pour écrire une question dans son champ de saisie
+// (sites qui n'acceptent pas la question dans l'URL). N'envoie rien.
+function injectScript({ selector, text }) {
+  return `(async () => {
+    for (let i = 0; i < 60; i++) {
+      const el = document.querySelector(${JSON.stringify(selector)});
+      if (el) {
+        el.focus();
+        if ('value' in el && el.tagName !== 'DIV') {
+          el.value = ${JSON.stringify(text)};
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        } else {
+          document.execCommand('insertText', false, ${JSON.stringify(text)});
+        }
+        return true;
+      }
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    return false;
+  })()`;
+}
+
+// Normalise une cible : chaîne (URL) ou { url, inject?, query? }
+const toTarget = (t) => (typeof t === 'string' ? { url: t } : t);
+
 class TabManager extends EventEmitter {
-  constructor(win, { topOffset, homeUrl, onWebContentsCreated }) {
+  constructor(win, { topOffset, getHomeUrl, onWebContentsCreated }) {
     super();
     this.win = win;
     this.topOffset = topOffset;
-    this.homeUrl = homeUrl;
+    this.getHomeUrl = getHomeUrl;
     this.onWebContentsCreated = onWebContentsCreated;
-    this.tabs = new Map(); // id -> { id, view, title, url, favicon, loading }
+    this.tabs = new Map(); // id -> { id, view, title, url, favicon, loading, query }
     this.order = [];
     this.activeId = null;
     this.nextId = 1;
@@ -21,7 +47,8 @@ class TabManager extends EventEmitter {
     win.on('resize', () => this.layout());
   }
 
-  create(url = this.homeUrl, { activate = true } = {}) {
+  create(target, { activate = true } = {}) {
+    const { url = this.getHomeUrl(), inject, query = null } = toTarget(target || {});
     const view = new WebContentsView({
       webPreferences: {
         partition: PARTITION,
@@ -31,7 +58,7 @@ class TabManager extends EventEmitter {
       },
     });
     const id = this.nextId++;
-    const tab = { id, view, title: 'Nouvel onglet', url, favicon: null, loading: true };
+    const tab = { id, view, title: 'Nouvel onglet', url, favicon: null, loading: true, query };
     this.tabs.set(id, tab);
     this.order.push(id);
 
@@ -45,9 +72,12 @@ class TabManager extends EventEmitter {
     wc.on('page-favicon-updated', (_e, favicons) => update({ favicon: favicons[0] || null }));
     wc.on('did-start-loading', () => update({ loading: true }));
     wc.on('did-stop-loading', () => update({ loading: false }));
-    wc.on('did-navigate', (_e, navUrl) => update({ url: navUrl, favicon: null }));
+    wc.on('did-navigate', (_e, navUrl) => {
+      // Mémorise la question si la page est une page de résultats connue
+      update({ url: navUrl, favicon: null, query: extractQuery(navUrl) || tab.query });
+    });
     wc.on('did-navigate-in-page', (_e, navUrl, isMainFrame) => {
-      if (isMainFrame) update({ url: navUrl });
+      if (isMainFrame) update({ url: navUrl, query: extractQuery(navUrl) || tab.query });
     });
     wc.on('did-fail-load', (_e, code, desc, failedUrl, isMainFrame) => {
       if (isMainFrame && code !== -3 /* ABORTED */) {
@@ -63,10 +93,20 @@ class TabManager extends EventEmitter {
 
     if (this.onWebContentsCreated) this.onWebContentsCreated(wc);
 
-    wc.loadURL(url);
+    this.load(tab, { url, inject });
     if (activate) this.activate(id);
     else this.emitState();
     return id;
+  }
+
+  load(tab, { url, inject }) {
+    const wc = tab.view.webContents;
+    if (inject) {
+      wc.once('did-finish-load', () => {
+        wc.executeJavaScript(injectScript(inject)).catch(() => {});
+      });
+    }
+    wc.loadURL(url).catch(() => {}); // les erreurs sont gérées par did-fail-load
   }
 
   activate(id) {
@@ -109,10 +149,13 @@ class TabManager extends EventEmitter {
     return this.tabs.get(this.activeId) || null;
   }
 
-  navigate(url) {
+  // Ouvre une cible dans l'onglet courant
+  navigate(target) {
     const tab = this.active();
     if (!tab) return;
-    tab.view.webContents.loadURL(url);
+    const t = toTarget(target);
+    if (t.query) tab.query = t.query;
+    this.load(tab, t);
     tab.view.webContents.focus();
   }
 
@@ -134,6 +177,11 @@ class TabManager extends EventEmitter {
     this.active()?.view.webContents.stop();
   }
 
+  setTopOffset(px) {
+    this.topOffset = px;
+    this.layout();
+  }
+
   layout() {
     const tab = this.active();
     if (!tab) return;
@@ -150,7 +198,7 @@ class TabManager extends EventEmitter {
       canGoForward: !!h && h.canGoForward(),
       tabs: this.order.map((id) => {
         const t = this.tabs.get(id);
-        return { id: t.id, title: t.title, url: t.url, favicon: t.favicon, loading: t.loading };
+        return { id: t.id, title: t.title, url: t.url, favicon: t.favicon, loading: t.loading, query: t.query };
       }),
     };
   }

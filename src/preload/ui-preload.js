@@ -3,6 +3,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('nav', {
+  // onglets / navigation
   newTab: (input) => ipcRenderer.send('tabs:new', input),
   closeTab: (id) => ipcRenderer.send('tabs:close', id),
   activateTab: (id) => ipcRenderer.send('tabs:activate', id),
@@ -14,4 +15,12 @@ contextBridge.exposeInMainWorld('nav', {
   getState: () => ipcRenderer.invoke('tabs:get-state'),
   onState: (cb) => ipcRenderer.on('tabs:state', (_e, state) => cb(state)),
   onFocusAddress: (cb) => ipcRenderer.on('ui:focus-address', () => cb()),
+  setChromeHeight: (px) => ipcRenderer.send('ui:chrome-height', px),
+
+  // moteurs de recherche / IA
+  getEngines: () => ipcRenderer.invoke('engines:get-state'),
+  onEngines: (cb) => ipcRenderer.on('engines:state', (_e, state) => cb(state)),
+  setEngine: (id) => ipcRenderer.send('engines:set-active', id),
+  resendTo: (id, fallbackQuery) => ipcRenderer.send('engines:resend', id, fallbackQuery),
+  onResendShortcut: (cb) => ipcRenderer.on('ui:resend', (_e, id) => cb(id)),
 });
