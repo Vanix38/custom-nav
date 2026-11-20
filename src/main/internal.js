@@ -4,6 +4,7 @@
 //   customnav://history/   -> src/internal/history.html
 //   customnav://bookmarks/ -> src/internal/bookmarks.html
 //   customnav://extensions/ -> src/internal/extensions.html
+//   customnav://mail/       -> src/internal/mail.html (client mail)
 //   customnav://<page>/x   -> src/internal/x (css, js partagés)
 const path = require('path');
 const { pathToFileURL } = require('url');
@@ -11,7 +12,7 @@ const { protocol, net } = require('electron');
 
 const SCHEME = 'customnav';
 const ROOT = path.join(__dirname, '..', 'internal');
-const PAGES = new Set(['home', 'settings', 'history', 'bookmarks', 'extensions']);
+const PAGES = new Set(['home', 'settings', 'history', 'bookmarks', 'extensions', 'mail']);
 
 // À appeler avant app.whenReady()
 function registerScheme() {

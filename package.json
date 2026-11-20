@@ -59,6 +59,9 @@
     "@modelcontextprotocol/sdk": "^1.32.2",
     "electron-chrome-extensions": "^4.10.0",
     "electron-chrome-web-store": "^0.13.0",
+    "imapflow": "^2.12.2",
+    "mailparser": "^3.15.0",
+    "nodemailer": "^10.6.1",
     "zod": "^4.6.7"
   }
 }

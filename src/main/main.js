@@ -10,6 +10,7 @@ const bookmarks = require('./bookmarks');
 const extensions = require('./extensions');
 const adblock = require('./adblock');
 const mcp = require('./mcp');
+const mail = require('./mail');
 
 // Hauteur initiale de l'interface ; l'interface envoie ensuite sa vraie hauteur.
 const CHROME_HEIGHT = 80;
@@ -101,6 +102,14 @@ function openSettings(ctx) {
 
 function openHistory(ctx) {
   ctx.tabs.focusOrCreate(config.HISTORY_PAGE);
+}
+
+// Client mail : toujours dans la fenêtre normale (pas de courrier en navigation privée)
+function openMail(ctx) {
+  const target = ctx && !ctx.isPrivate ? ctx : createWindow({ restore: false });
+  target.tabs.focusOrCreate(mail.PAGE);
+  if (target.win.isMinimized()) target.win.restore();
+  target.win.focus();
 }
 
 function newTab(ctx) {
@@ -243,6 +252,8 @@ function runShortcut(ctx, event, input) {
     sendToUi(ctx, 'ui:focus-address');
   } else if (ctrl && key === ',') {
     openSettings(ctx);
+  } else if (ctrl && input.shift && key === 'e') {
+    openMail(ctx);
   } else if (ctrl && !input.shift && key === 'h') {
     openHistory(ctx);
   } else if (key === 'f5' || (ctrl && key === 'r')) {
@@ -561,6 +572,7 @@ ipcMain.on('ui:app-menu', fromUi((ctx, x, y) => {
     { type: 'separator' },
     { label: 'Historique', accelerator: 'Ctrl+H', click: () => openHistory(ctx) },
     { label: 'Favoris', accelerator: 'Ctrl+Shift+O', click: () => openBookmarksManager(ctx) },
+    { label: mail.totalUnseen() ? `Courrier (${mail.totalUnseen()} non lus)` : 'Courrier', accelerator: 'Ctrl+Shift+E', click: () => openMail(ctx) },
     { label: 'Extensions', click: () => ctx.tabs.focusOrCreate(config.EXTENSIONS_PAGE) },
     ...(ctx.isPrivate ? [] : [{ label: 'Barre latérale', accelerator: 'Ctrl+Shift+M', click: () => messengers.toggleRail() }]),
     { label: 'Outils de développement', accelerator: 'F12', click: () => ctx.tabs.toggleDevTools() },
@@ -847,13 +859,18 @@ app.whenReady().then(async () => {
     onStatusChange: mcpChanged,
   });
   extensions.onChange(extensionsChanged);
+  // clic sur une notification de nouveau message : ouvre la page Courrier
+  mail.init({ openPage: () => openMail(mainCtx) });
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
-app.on('before-quit', () => history.saveNow());
+app.on('before-quit', () => {
+  history.saveNow();
+  mail.shutdown();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();

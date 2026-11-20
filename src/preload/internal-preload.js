@@ -73,6 +73,11 @@ if (location.protocol === 'customnav:') {
       setVisible: (on) => call('sidebar-set-visible', on),
       onChange: (cb) => ipcRenderer.on('internal:sidebar', (_e, s) => cb(s)),
     },
+    // client mail (page customnav://mail/ uniquement, revérifié côté principal)
+    mail: location.hostname === 'mail' ? {
+      call: (action, ...args) => ipcRenderer.invoke('mail', action, ...args),
+      onEvent: (cb) => ipcRenderer.on('internal:mail', (_e, ev) => cb(ev)),
+    } : undefined,
     onConfig: (cb) => ipcRenderer.on('internal:config', (_e, config) => cb(config)),
   });
 }
