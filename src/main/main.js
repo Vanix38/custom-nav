@@ -1,6 +1,6 @@
 const path = require('path');
 const { app, BrowserWindow, Menu, clipboard, ipcMain, nativeTheme, session, webContents: allWebContents } = require('electron');
-const { TabManager, PARTITION } = require('./tabs');
+const { TabManager, PARTITION, GROUP_COLORS } = require('./tabs');
 const { getEngines, getEngine, iconFor, buildEngineTarget, resolveInput, isHttpUrl } = require('./search');
 const internal = require('./internal');
 const messengers = require('./messengers');
@@ -252,9 +252,11 @@ function runShortcut(ctx, event, input) {
   } else if (input.alt && key === 'arrowright') {
     tabs.goForward();
   } else if (ctrl && key === 'tab') {
-    const i = tabs.order.indexOf(tabs.activeId);
-    const n = tabs.order.length;
-    tabs.activate(tabs.order[(i + (input.shift ? n - 1 : 1)) % n]);
+    // les onglets des groupes repliés sont sautés
+    const visible = tabs.order.filter((t) => t === tabs.activeId || tabs.isVisible(t));
+    const i = visible.indexOf(tabs.activeId);
+    const n = visible.length;
+    tabs.activate(visible[(i + (input.shift ? n - 1 : 1)) % n]);
   } else {
     handled = false;
   }
@@ -283,7 +285,15 @@ function openInitialTabs(ctx, restore) {
     return;
   }
   const ids = saved.map((t) => ctx.tabs.create({ url: t.url, query: t.query }, { activate: false }));
-  ctx.tabs.activate(ids[Math.min(last.active || 0, ids.length - 1)]);
+  // groupes d'onglets
+  (Array.isArray(last.groups) ? last.groups : []).forEach((g, gi) => {
+    const members = ids.filter((_id, i) => saved[i].group === gi);
+    if (members.length && g) ctx.tabs.createGroup(members, { title: g.title || '', color: g.color, collapsed: !!g.collapsed });
+  });
+  // l'onglet actif : de préférence un onglet visible (hors groupe replié)
+  let active = ids[Math.min(last.active || 0, ids.length - 1)];
+  if (!ctx.tabs.isVisible(active)) active = ids.find((id) => ctx.tabs.isVisible(id)) ?? active;
+  ctx.tabs.activate(active);
 }
 
 // Barre de titre intégrée : les onglets sont sur la même ligne que les boutons
@@ -444,10 +454,29 @@ ipcMain.on('tabs:context-menu', fromUi((ctx, id, x, y) => {
   const others = tabs.order.filter((t) => t !== id);
   const right = tabs.order.slice(i + 1);
   const left = tabs.order.slice(0, i);
+  // « Ajouter l'onglet au groupe » : nouveau groupe ou un groupe existant
+  const otherGroups = [...tabs.groups.values()].filter((g) => g.id !== tab.groupId);
+  const newGroup = () => {
+    const gid = tabs.createGroup([id]);
+    if (gid) renameGroupInUi(ctx, gid); // on propose tout de suite de le nommer
+  };
+  const groupItems = otherGroups.length
+    ? [{
+        label: "Ajouter l'onglet au groupe",
+        submenu: [
+          { label: 'Nouveau groupe', click: newGroup },
+          { type: 'separator' },
+          ...otherGroups.map((g) => ({ label: groupLabel(tabs, g), click: () => tabs.addToGroup([id], g.id) })),
+        ],
+      }]
+    : [{ label: "Ajouter l'onglet à un nouveau groupe", click: newGroup }];
+  if (tab.groupId) groupItems.push({ label: 'Retirer du groupe', click: () => tabs.removeFromGroup([id]) });
   Menu.buildFromTemplate([
     { label: 'Nouvel onglet', click: () => newTab(ctx) },
     { label: 'Recharger', click: () => tab.view.webContents.reload() },
-    { label: 'Dupliquer', enabled: isHttpUrl(tab.url) || internal.isInternalUrl(tab.url), click: () => tabs.create({ url: tab.url, query: tab.query }) },
+    { label: 'Dupliquer', enabled: isHttpUrl(tab.url) || internal.isInternalUrl(tab.url), click: () => tabs.create({ url: tab.url, query: tab.query }, { groupId: tab.groupId }) },
+    { type: 'separator' },
+    ...groupItems,
     { type: 'separator' },
     { label: 'Fermer', accelerator: 'Ctrl+W', click: () => tabs.close(id) },
     { label: 'Fermer les autres onglets', enabled: others.length > 0, click: () => { tabs.closeMany(others); tabs.activate(id); } },
@@ -455,6 +484,55 @@ ipcMain.on('tabs:context-menu', fromUi((ctx, id, x, y) => {
     { label: 'Fermer les onglets à gauche', enabled: left.length > 0, click: () => tabs.closeMany(left) },
   ]).popup({ window: ctx.win, x: Math.round(x), y: Math.round(y) });
 }));
+
+// --- Groupes d'onglets ---
+// Nom affiché d'un groupe dans les menus (sans nom : couleur + nombre d'onglets)
+function groupLabel(tabs, g) {
+  if (g.title) return g.title;
+  const color = GROUP_COLORS.find((c) => c.id === g.color)?.name || 'Groupe';
+  const n = tabs.groupTabIds(g.id).length;
+  return `${color} (${n} onglet${n > 1 ? 's' : ''})`;
+}
+
+// Champ de saisie du nom dans l'étiquette du groupe (l'interface prend le focus clavier)
+function renameGroupInUi(ctx, gid) {
+  ctx.win.webContents.focus();
+  sendToUi(ctx, 'ui:rename-group', gid);
+}
+
+ipcMain.on('groups:toggle', fromUi(({ tabs }, gid) => tabs.toggleGroupCollapsed(gid)));
+ipcMain.on('groups:rename', fromUi(({ tabs }, gid, title) => {
+  if (typeof title === 'string') tabs.updateGroup(gid, { title });
+}));
+// Clic droit sur l'étiquette d'un groupe
+ipcMain.on('groups:context-menu', fromUi((ctx, gid, x, y) => {
+  const { tabs } = ctx;
+  const group = tabs.groups.get(gid);
+  if (!group) return;
+  popupMenu(ctx, [
+    { label: 'Renommer le groupe…', click: () => renameGroupInUi(ctx, gid) },
+    {
+      label: 'Couleur',
+      submenu: GROUP_COLORS.map((c) => ({
+        label: c.name,
+        type: 'radio',
+        checked: group.color === c.id,
+        click: () => tabs.updateGroup(gid, { color: c.id }),
+      })),
+    },
+    { type: 'separator' },
+    { label: 'Nouvel onglet dans le groupe', click: () => {
+      tabs.create(undefined, { groupId: gid });
+      ctx.win.webContents.focus();
+      sendToUi(ctx, 'ui:focus-address');
+    } },
+    { label: group.collapsed ? 'Déplier le groupe' : 'Replier le groupe', click: () => tabs.toggleGroupCollapsed(gid) },
+    { label: 'Dissocier le groupe', click: () => tabs.ungroup(gid) },
+    { type: 'separator' },
+    { label: 'Fermer le groupe', click: () => tabs.closeGroup(gid) },
+  ], x, y);
+}));
+
 ipcMain.on('nav:go', fromUi(({ tabs }, input) => tabs.navigate(resolveInput(input, activeEngineId()))));
 ipcMain.on('nav:back', fromUi(({ tabs }) => tabs.goBack()));
 ipcMain.on('nav:forward', fromUi(({ tabs }) => tabs.goForward()));
