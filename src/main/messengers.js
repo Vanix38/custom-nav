@@ -371,7 +371,7 @@ class MessengerPanel {
       cancelId: 1,
       title: `Se déconnecter de ${m.name}`,
       message: `Se déconnecter de ${m.name} ?`,
-      detail: 'Les cookies et données locales de cette messagerie dans Custom Nav seront effacés. '
+      detail: 'Les cookies et données locales de cette messagerie dans Explora seront effacés. '
         + 'Il faudra vous reconnecter (pour WhatsApp : rescanner le QR code).',
     });
     if (response !== 0) return;

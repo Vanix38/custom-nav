@@ -10,14 +10,17 @@ const bookmarks = require('./bookmarks');
 const extensions = require('./extensions');
 const adblock = require('./adblock');
 const mcp = require('./mcp');
+const { migrateUserData, upgradeLegacyUrl } = require('./migrate');
 
 // Hauteur initiale de l'interface ; l'interface envoie ensuite sa vraie hauteur.
 const CHROME_HEIGHT = 80;
 
-// Dossier des réglages et sessions : toujours %APPDATA%custom-nav, que l'app
-// soit lancée avec npm start ou installée (sinon productName « Custom Nav »
-// changerait le dossier et ferait perdre réglages et connexions).
-app.setPath('userData', path.join(app.getPath('appData'), 'custom-nav'));
+// Dossier des réglages et sessions : toujours %APPDATA%\Explora, que l'app
+// soit lancée avec npm start (nom du package « explora ») ou installée.
+app.setPath('userData', path.join(app.getPath('appData'), 'Explora'));
+// Ancien nom « Custom Nav » : copie %APPDATA%\custom-nav vers le nouveau dossier,
+// avant tout accès aux réglages ou aux partitions (cookies, connexions).
+migrateUserData(path.join(app.getPath('appData'), 'custom-nav'), app.getPath('userData'));
 
 const APP_ICON = path.join(__dirname, '..', '..', 'build', 'icon.ico');
 
@@ -25,13 +28,13 @@ const APP_ICON = path.join(__dirname, '..', '..', 'build', 'icon.ico');
 // Gemini…) refusent la connexion ou dégradent la page pour un UA Electron.
 app.userAgentFallback = app.userAgentFallback
   .replace(/\sElectron\/\S+/, '')
-  .replace(/\s(?:Custom Nav|custom-nav)\/\S+/gi, '');
+  .replace(/\sExplora\/\S+/gi, '');
 
 internal.registerScheme();
 
 // Notifications Windows (WhatsApp, Discord…) : sans identifiant d'application,
 // les notifications ne s'affichent pas quand l'app est lancée depuis les sources.
-if (process.platform === 'win32') app.setAppUserModelId('com.vanix38.customnav');
+if (process.platform === 'win32') app.setAppUserModelId('com.vanix38.explora');
 
 // Une entrée par fenêtre ouverte : { win, tabs, isPrivate, partition }.
 // Il y a au plus une fenêtre normale (celle dont les onglets sont rouverts au
@@ -277,7 +280,7 @@ function saveSessionNow() {
 
 function openInitialTabs(ctx, restore) {
   const last = restore && config.getConfig().restoreTabs ? config.getLastSession() : null;
-  const saved = (last?.tabs || []).filter((t) => isHttpUrl(t.url) || internal.isInternalUrl(t.url));
+  const saved = (last?.tabs || []).map((t) => ({ ...t, url: upgradeLegacyUrl(t.url) })).filter((t) => isHttpUrl(t.url) || internal.isInternalUrl(t.url));
   if (saved.length === 0) {
     newTab(ctx);
     return;
@@ -329,7 +332,7 @@ function createWindow({ isPrivate = false, restore = true } = {}) {
     height: 820,
     minWidth: 600,
     minHeight: 400,
-    title: isPrivate ? 'Custom Nav – Navigation privée' : 'Custom Nav',
+    title: isPrivate ? 'Explora – Navigation privée' : 'Explora',
     icon: APP_ICON,
     backgroundColor: windowBackground(isPrivate),
     autoHideMenuBar: true,
@@ -574,7 +577,7 @@ const INTERNAL_ACTIONS = {
   'history-list': (opts) => history.list(opts || {}),
   'history-remove': (ids) => history.remove(ids),
   'history-clear': (range) => history.clear(range),
-  // gestionnaire de favoris (customnav://bookmarks/)
+  // gestionnaire de favoris (explora://bookmarks/)
   'bookmarks-get': () => bookmarksState(),
   'bookmarks-add-link': (data) => bookmarks.addLink(data),
   'bookmarks-add-folder': (data) => bookmarks.addFolder(data),
@@ -584,7 +587,7 @@ const INTERNAL_ACTIONS = {
   'bookmarks-import-sources': () => bookmarks.importSources(),
   'bookmarks-import': (browserId) => bookmarks.importFrom(browserId),
   'bookmarks-set-show-bar': (on) => config.setShowBookmarksBar(on),
-  // extensions (customnav://extensions/)
+  // extensions (explora://extensions/)
   'extensions-list': () => extensions.list(),
   'extensions-remove': (id) => extensions.remove(String(id)),
   'extensions-update': () => extensions.checkUpdates(),
@@ -657,7 +660,7 @@ ipcMain.handle('internal', async (event, action, ...args) => {
   return result;
 });
 
-// --- Extensions : ce que chrome.tabs / chrome.windows font dans Custom Nav ---
+// --- Extensions : ce que chrome.tabs / chrome.windows font dans Explora ---
 function tabFromWebContents(wc) {
   const ctx = ctxFor(wc);
   const tab = ctx?.tabs.tabFor(wc);

@@ -1,5 +1,5 @@
 {
-  "name": "custom-nav",
+  "name": "explora",
   "version": "1.0.0",
   "description": "Navigateur de bureau perso pour passer facilement d'un moteur de recherche ou d'une IA à l'autre",
   "main": "src/main/main.js",
@@ -16,10 +16,10 @@
     "electron": "^45.4.1",
     "electron-builder": "^26.18.0"
   },
-  "productName": "Custom Nav",
+  "productName": "Explora",
   "build": {
-    "appId": "com.vanix38.customnav",
-    "productName": "Custom Nav",
+    "appId": "com.vanix38.explora",
+    "productName": "Explora",
     "copyright": "Vanix38",
     "directories": {
       "output": "dist",
@@ -48,10 +48,10 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
-      "shortcutName": "Custom Nav",
-      "uninstallDisplayName": "Custom Nav",
+      "shortcutName": "Explora",
+      "uninstallDisplayName": "Explora",
       "deleteAppDataOnUninstall": false,
-      "artifactName": "Custom-Nav-Setup-${version}.${ext}"
+      "artifactName": "Explora-Setup-${version}.${ext}"
     }
   },
   "dependencies": {

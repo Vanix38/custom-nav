@@ -104,10 +104,10 @@ function render() {
 
   if (!addressDirty || document.activeElement !== address) {
     // la page d'accueil interne affiche une barre d'adresse vide
-    address.value = active && !active.url.startsWith('customnav://home') ? active.url : '';
+    address.value = active && !active.url.startsWith('explora://home') ? active.url : '';
     addressDirty = false;
   }
-  const appName = isPrivate ? 'Custom Nav (navigation privée)' : 'Custom Nav';
+  const appName = isPrivate ? 'Explora (navigation privée)' : 'Explora';
   document.title = active ? `${active.title} – ${appName}` : appName;
   renderStar(); // appelé après le chargement du script (événements IPC)
   renderAdblock();

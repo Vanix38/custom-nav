@@ -1,23 +1,29 @@
-# Custom Nav
+# Explora
 
 Navigateur de bureau perso (Windows), fait maison avec [Electron](https://www.electronjs.org/).
 Objectif : passer très facilement d'un moteur de recherche ou d'une IA (Claude, etc.) à l'autre.
 
 ## Installer / mettre à jour
 
-1. Générer l'installeur (voir ci-dessous) ou récupérer `dist/Custom-Nav-Setup-<version>.exe`.
+1. Générer l'installeur (voir ci-dessous) ou récupérer `dist/Explora-Setup-<version>.exe`.
 2. Lancer l'installeur. L'installation se fait **pour l'utilisateur courant, sans droits
    administrateur** ; le dossier est modifiable (par défaut
-   `%LOCALAPPDATA%ProgramsCustom Nav`). Raccourcis créés sur le Bureau et dans le menu Démarrer.
+   `%LOCALAPPDATA%ProgramsExplora`). Raccourcis créés sur le Bureau et dans le menu Démarrer.
 3. **Windows SmartScreen** peut avertir au premier lancement de l'installeur, car il n'est pas signé
    (usage perso) : cliquer sur **« Informations complémentaires »** puis **« Exécuter quand même »**.
 
 Pour **mettre à jour**, relancer simplement l'installeur d'une version plus récente par-dessus.
 
-Les réglages, onglets et connexions sont dans `%APPDATA%custom-nav` : ils sont conservés lors
-des mises à jour **et** de la désinstallation (Paramètres Windows > Applications > Custom Nav, ou
-`Uninstall Custom Nav.exe` dans le dossier d'installation). Pour repartir de zéro, supprimer ce
+Les réglages, onglets et connexions sont dans `%APPDATA%\Explora` : ils sont conservés lors
+des mises à jour **et** de la désinstallation (Paramètres Windows > Applications > Explora, ou
+`Uninstall Explora.exe` dans le dossier d'installation). Pour repartir de zéro, supprimer ce
 dossier à la main après désinstallation. Le même dossier est utilisé par `npm start`.
+
+**Ancien nom « Custom Nav »** : au premier lancement d'Explora, le dossier `%APPDATA%\custom-nav` est
+copié vers `%APPDATA%\Explora` (réglages, onglets, favoris, connexions) ; l'ancien dossier est laissé
+en place comme sauvegarde. Les anciennes adresses `customnav://…` ouvrent la page `explora://…`
+correspondante. L'identifiant de l'app ayant changé, désinstaller « Custom Nav » à la main
+(Paramètres Windows > Applications).
 
 ### Générer l'installeur
 
@@ -26,7 +32,7 @@ npm install
 npm run dist
 ```
 
-Résultat : `dist/Custom-Nav-Setup-<version>.exe` (NSIS, Windows x64, via
+Résultat : `dist/Explora-Setup-<version>.exe` (NSIS, Windows x64, via
 [electron-builder](https://www.electron.build/)). Le dossier `dist/` n'est pas versionné.
 
 L'icône est générée depuis `build/icon.svg` : après l'avoir modifiée, `npm run icon` régénère
@@ -72,7 +78,7 @@ npm start
   ouvrir dans l'onglet courant, `Ctrl+clic` ou clic molette pour un nouvel onglet, clic sur un dossier
   pour son menu (sous-dossiers, « Tout ouvrir »), clic droit pour ouvrir / supprimer / gérer. Les favoris
   qui ne tiennent pas dans la largeur passent dans le menu **»**.
-- **Gestionnaire** (`Ctrl+Shift+O`, ou « ★ Favoris » sur la page d'accueil, `customnav://bookmarks/`) :
+- **Gestionnaire** (`Ctrl+Shift+O`, ou « ★ Favoris » sur la page d'accueil, `explora://bookmarks/`) :
   recherche, renommer, changer l'adresse, créer des dossiers (imbriqués), déplacer, réordonner, supprimer.
   Tout est enregistré immédiatement dans `settings.json` (clé `bookmarks`).
 - **Import** depuis Google Chrome, Microsoft Edge ou Brave (profil par défaut, s'il est installé) : copie
@@ -94,7 +100,7 @@ listes EasyList, EasyPrivacy, filtres uBlock Origin, Peter Lowe et Liste FR :
   bloqueurs), désactiver le bloqueur partout, ou ouvrir ses réglages ;
 - dans les réglages (section « Bloqueur de publicités ») : activer / désactiver, liste des sites autorisés,
   mise à jour manuelle des listes. Les listes sont téléchargées au premier lancement, compilées et mises en
-  cache dans `%APPDATA%\custom-nav\adblock-engine.bin`, puis rafraîchies tous les 3 jours. Sans réseau, le
+  cache dans `%APPDATA%\Explora\adblock-engine.bin`, puis rafraîchies tous les 3 jours. Sans réseau, le
   cache existant est utilisé.
 
 Limites : certains sites détectent les bloqueurs et demandent de les désactiver ; les pubs YouTube
@@ -102,7 +108,7 @@ dépendent de scripts que YouTube change souvent, le blocage peut y être imparf
 
 ### Pilotage par une IA (serveur MCP)
 
-Custom Nav contient un serveur [MCP](https://modelcontextprotocol.io/) pour qu'une IA comme Claude (Claude Code,
+Explora contient un serveur [MCP](https://modelcontextprotocol.io/) pour qu'une IA comme Claude (Claude Code,
 Claude Desktop…) puisse piloter le navigateur. **Désactivé par défaut** : Paramètres > « Pilotage par une IA
 (MCP) ». Une fois activé, la page affiche la commande à copier pour Claude Code et le bloc de configuration pour
 Claude Desktop (via `mcp-remote`, qui nécessite Node.js).
@@ -119,16 +125,16 @@ n'active le serveur que pour une IA en qui tu as confiance.
 
 ### Extensions Chrome
 
-Le bouton pièce de puzzle (à droite de la barre d'adresse) ouvre `customnav://extensions/` : liste des
+Le bouton pièce de puzzle (à droite de la barre d'adresse) ouvre `explora://extensions/` : liste des
 extensions installées, options, suppression, recherche de mises à jour, et un lien vers le Chrome Web Store.
 
-- Sur le **Chrome Web Store**, le bouton « Ajouter à Chrome » (affiché « Ajouter à Custom Nav » ou similaire)
+- Sur le **Chrome Web Store**, le bouton « Ajouter à Chrome » (affiché « Ajouter à Explora » ou similaire)
   installe l'extension après une confirmation qui résume ses autorisations. Le Store affiche aussi un bandeau
   « Passez à Chrome » : il peut être ignoré. Seules les extensions **Manifest V3** sont acceptées.
 - Les boutons des extensions apparaissent à droite de la barre d'adresse (clic = popup de l'extension).
 - Les éléments ajoutés au **clic droit** par les extensions apparaissent dans le menu contextuel des pages
   (qui propose aussi : ouvrir le lien dans un nouvel onglet, copier, coller, inspecter…).
-- Mises à jour automatiques au lancement puis toutes les 5 heures. Fichiers dans `%APPDATA%\custom-nav\Extensions`.
+- Mises à jour automatiques au lancement puis toutes les 5 heures. Fichiers dans `%APPDATA%\Explora\Extensions`.
 - **Aucune extension en navigation privée.**
 
 Tout repose sur [electron-chrome-extensions](https://github.com/samuelmaddock/electron-browser-shell) et
@@ -155,7 +161,7 @@ d'onglets et au titre de la fenêtre.
   partagés avec la fenêtre normale ni avec les autres fenêtres privées, et sont vidés dès la
   fermeture de la fenêtre.
 - Ses onglets ne sont **pas enregistrés** ni rouverts au lancement suivant (seule la fenêtre normale
-  l'est). Les nouveaux onglets privés ouvrent toujours la page d'accueil Custom Nav.
+  l'est). Les nouveaux onglets privés ouvrent toujours la page d'accueil Explora.
 - Les réglages (moteur actif, liste des moteurs, thème…) restent communs : les modifier depuis une
   fenêtre privée les enregistre comme d'habitude.
 - `Ctrl+N` ramène la fenêtre normale (ou la rouvre si elle a été fermée).
@@ -210,15 +216,15 @@ Le user-agent envoyé aux sites est celui d'un Chrome standard (sans « Electron
 
 ### Réglages
 
-Ouverts dans un onglet (`customnav://settings/`), enregistrés dans `settings.json` du dossier
-utilisateur de l'app (`%APPDATA%custom-navsettings.json`).
+Ouverts dans un onglet (`explora://settings/`), enregistrés dans `settings.json` du dossier
+utilisateur de l'app (`%APPDATA%\Explora\settings.json`).
 
 - **Moteurs de recherche et IA** : ajouter (nom, URL avec `{q}` ou `%s` à la place de la question,
   catégorie moteur / IA, option « Injection dans la page » avec un sélecteur CSS facultatif),
   modifier, supprimer, réordonner avec ▲ ▼ (l'ordre définit `Ctrl+1` … `Ctrl+9`), choisir le moteur
   par défaut, puis **Enregistrer**. « Réinitialiser la liste » (à confirmer d'un 2e clic) remet la
   liste d'origine. Seules les URL `http://` et `https://` sont acceptées.
-- **Page d'accueil** : la page Custom Nav, ou une adresse de ton choix. Les **favoris** affichés sur la
+- **Page d'accueil** : la page Explora, ou une adresse de ton choix. Les **favoris** affichés sur la
   page d'accueil sont éditables.
 - **Apparence** : suivre Windows, clair ou sombre. Le choix s'applique à l'interface, aux pages internes
   et est transmis aux sites (`prefers-color-scheme`).
@@ -262,11 +268,11 @@ src/
     adblock.js   bloqueur de pub intégré (moteur Ghostery, toutes les sessions)
     mcp.js       serveur MCP local (pilotage par une IA, fenêtre normale uniquement)
     settings.js  lecture / écriture de settings.json
-    internal.js  protocole customnav:// des pages internes
+    internal.js  protocole explora:// des pages internes
     messengers.js  barre et panneaux des messageries (WhatsApp, Discord)
   preload/
     ui-preload.js        API de l'interface (barre d'onglets / d'outils)
-    internal-preload.js  API des pages internes (n'existe que sur customnav://)
+    internal-preload.js  API des pages internes (n'existe que sur explora://)
     messengers-rail-preload.js  API de la barre des messageries
     messenger-preload.js  retour au panneau au clic sur une notification
   renderer/
@@ -283,9 +289,9 @@ Sécurité :
 - les pages web tournent sans accès à Node (`nodeIntegration: false`, `contextIsolation: true`,
   `sandbox: true`) ; seule l'interface (fichier local `index.html`, qui ne peut pas naviguer ailleurs) a un
   preload non sandboxé, pour charger les boutons d'extensions ;
-- l'API des réglages (`window.customNav`) n'est exposée qu'aux pages `customnav://`, et le processus
+- l'API des réglages (`window.customNav`) n'est exposée qu'aux pages `explora://`, et le processus
   principal vérifie à chaque message que l'expéditeur est bien une page interne (cadre principal) ;
-- un site web ne peut pas ouvrir une page `customnav://` (navigation, redirection, cadre ou
+- un site web ne peut pas ouvrir une page `explora://` (navigation, redirection, cadre ou
   `window.open` sont bloqués).
 
 ## Feuille de route
