@@ -30,6 +30,8 @@ html, body {
 
 #rail {
   height: 100%;
+  overflow-y: auto;
+  scrollbar-width: none;
   box-sizing: border-box;
   border-right: 1px solid var(--border);
   display: flex;
@@ -69,11 +71,38 @@ html, body {
   background: var(--accent);
 }
 
+.messenger .icon {
+  display: grid;
+  place-items: center;
+}
+
 .messenger svg {
   width: 26px;
   height: 26px;
 }
 
+.messenger .site-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  object-fit: contain;
+}
+
+.messenger .letter-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: #6b6f7b;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 26px;
+  text-align: center;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+}
+
+.messenger.disabled .site-icon,
+.messenger.disabled .letter-icon,
 .messenger.disabled svg { filter: grayscale(1); opacity: 0.45; }
 
 .badge {

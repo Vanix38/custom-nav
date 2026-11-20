@@ -63,6 +63,16 @@ if (location.protocol === 'explora:') {
       regenerateToken: () => call('mcp-regenerate-token'),
       onChange: (cb) => ipcRenderer.on('internal:mcp', (_e, s) => cb(s)),
     },
+    // barre latérale (messageries et sites intégrés)
+    sidebar: {
+      get: () => call('sidebar-get'),
+      add: (data) => call('sidebar-add', data),
+      update: (id, patch) => call('sidebar-update', id, patch),
+      remove: (id) => call('sidebar-remove', id),
+      move: (id, delta) => call('sidebar-move', id, delta),
+      setVisible: (on) => call('sidebar-set-visible', on),
+      onChange: (cb) => ipcRenderer.on('internal:sidebar', (_e, s) => cb(s)),
+    },
     onConfig: (cb) => ipcRenderer.on('internal:config', (_e, config) => cb(config)),
   });
 }

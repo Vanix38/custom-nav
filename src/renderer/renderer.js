@@ -15,7 +15,7 @@ if (isPrivate) {
   $('private-badge').hidden = false;
 }
 
-let state = { tabs: [], activeId: null, canGoBack: false, canGoForward: false };
+let state = { tabs: [], groups: [], activeId: null, canGoBack: false, canGoForward: false };
 let addressDirty = false; // l'utilisateur est en train de taper
 
 // Les éléments des onglets sont réutilisés d'un rendu à l'autre (clé = id) :
@@ -55,7 +55,9 @@ function createTabEl(id) {
 }
 
 function updateTabEl(t, tab) {
-  t.el.className = 'tab' + (tab.id === state.activeId ? ' active' : '');
+  const group = tab.groupId ? (state.groups || []).find((g) => g.id === tab.groupId) : null;
+  t.el.className = 'tab' + (tab.id === state.activeId ? ' active' : '')
+    + (group ? ` grouped group-${group.color}` : '') + (group?.collapsed ? ' collapsed' : '');
   t.el.title = tab.title;
   t.title.textContent = tab.title || tab.url;
   const iconKey = tab.loading ? 'loading' : tab.favicon || '';
@@ -74,7 +76,91 @@ function updateTabEl(t, tab) {
   t.icon = icon;
 }
 
+// --- Groupes d'onglets : une étiquette colorée devant les onglets du groupe ---
+// Clic : replier / déplier. Clic droit : menu (renommer, couleur, fermer…).
+const groupEls = new Map(); // id -> { el, label, count, editing }
+
+function createGroupEl(id) {
+  const el = document.createElement('div');
+  el.setAttribute('role', 'button');
+  const label = document.createElement('span');
+  label.className = 'label';
+  const count = document.createElement('span');
+  count.className = 'count';
+  el.append(label, count);
+  const g = { el, label, count, editing: false };
+  el.addEventListener('mousedown', (e) => { if (e.button === 1) e.preventDefault(); });
+  el.addEventListener('click', () => {
+    if (!g.editing) window.nav.toggleGroup(id);
+  });
+  el.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    if (!g.editing) window.nav.groupContextMenu(id, e.clientX, e.clientY);
+  });
+  return g;
+}
+
+function updateGroupEl(g, group) {
+  g.el.className = `tab-group group-${group.color}` + (group.collapsed ? ' collapsed' : '')
+    + (group.title ? '' : ' unnamed') + (g.editing ? ' editing' : '');
+  const n = state.tabs.filter((t) => t.groupId === group.id).length;
+  const name = group.title || 'Groupe sans nom';
+  g.el.title = `${name} – ${n} onglet${n > 1 ? 's' : ''}\nClic : ${group.collapsed ? 'déplier' : 'replier'} · Clic droit : options`;
+  g.el.setAttribute('aria-expanded', String(!group.collapsed));
+  if (!g.editing) g.label.textContent = group.title;
+  // nombre d'onglets affiché quand le groupe est replié
+  g.count.textContent = group.collapsed ? String(n) : '';
+  g.count.hidden = !group.collapsed;
+}
+
+function startRenameGroup(id) {
+  const g = groupEls.get(id);
+  const group = (state.groups || []).find((x) => x.id === id);
+  if (!g || !group || g.editing) return;
+  g.editing = true;
+  g.el.classList.add('editing');
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'group-name';
+  input.value = group.title;
+  input.placeholder = 'Nom du groupe';
+  input.maxLength = 80;
+  input.spellcheck = false;
+  input.size = Math.max(8, group.title.length + 1);
+  let done = false;
+  const finish = (save) => {
+    if (done) return;
+    done = true;
+    g.editing = false;
+    g.el.classList.remove('editing');
+    input.replaceWith(g.label);
+    if (save) {
+      g.label.textContent = input.value.trim();
+      window.nav.renameGroup(id, input.value);
+    }
+    render();
+  };
+  input.addEventListener('input', () => { input.size = Math.max(8, input.value.length + 1); });
+  input.addEventListener('keydown', (e) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') finish(true);
+    else if (e.key === 'Escape') finish(false);
+  });
+  input.addEventListener('blur', () => finish(true));
+  input.addEventListener('mousedown', (e) => e.stopPropagation());
+  input.addEventListener('click', (e) => e.stopPropagation());
+  g.label.replaceWith(input);
+  input.focus();
+  input.select();
+}
+
+window.nav.onRenameGroup((id) => {
+  // l'étiquette du groupe vient peut-être d'être créée : on attend le rendu
+  requestAnimationFrame(() => startRenameGroup(id));
+});
+
 function renderTabs() {
+  const groups = new Map((state.groups || []).map((g) => [g.id, g]));
   const ids = new Set(state.tabs.map((t) => t.id));
   for (const [id, t] of tabEls) {
     if (!ids.has(id)) {
@@ -82,14 +168,36 @@ function renderTabs() {
       tabEls.delete(id);
     }
   }
-  state.tabs.forEach((tab, i) => {
+  for (const [id, g] of groupEls) {
+    if (!groups.has(id)) {
+      g.el.remove();
+      groupEls.delete(id);
+    }
+  }
+  // éléments dans l'ordre voulu : étiquette du groupe, puis ses onglets
+  const wanted = [];
+  let prevGroup = null;
+  for (const tab of state.tabs) {
+    if (tab.groupId && tab.groupId !== prevGroup && groups.has(tab.groupId)) {
+      let g = groupEls.get(tab.groupId);
+      if (!g) {
+        g = createGroupEl(tab.groupId);
+        groupEls.set(tab.groupId, g);
+      }
+      updateGroupEl(g, groups.get(tab.groupId));
+      wanted.push(g.el);
+    }
+    prevGroup = tab.groupId;
     let t = tabEls.get(tab.id);
     if (!t) {
       t = createTabEl(tab.id);
       tabEls.set(tab.id, t);
     }
     updateTabEl(t, tab);
-    if (tabsEl.children[i] !== t.el) tabsEl.insertBefore(t.el, tabsEl.children[i] || null);
+    wanted.push(t.el);
+  }
+  wanted.forEach((el, i) => {
+    if (tabsEl.children[i] !== el) tabsEl.insertBefore(el, tabsEl.children[i] || null);
   });
 }
 
