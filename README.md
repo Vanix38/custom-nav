@@ -62,7 +62,27 @@ npm start
 - Historique (`Ctrl+H`, menu ☰ ou lien en bas de la page d'accueil) : pages visitées groupées par jour, recherche, suppression d'une page, d'une sélection ou d'une période. Rien n'est enregistré en navigation privée ; conservé 90 jours dans `history.json`
 - Outils de développement (les DevTools de Chrome) ancrés à droite de la page : `F12`, `Ctrl+Shift+I`,
   menu ☰, ou clic droit > « Inspecter l'élément »
+- Onglet « Renvoyer » dans les outils de développement : modifier une requête réseau (méthode, URL,
+  en-têtes, corps) et la renvoyer, comme « Modifier et renvoyer » de Firefox, voir ci-dessous
 - Favoris : étoile dans la barre d'adresse, barre de favoris, dossiers, import depuis Chrome / Edge / Brave, voir ci-dessous
+
+### Modifier et renvoyer une requête
+
+Les DevTools de Chrome n'ont pas « Modifier et renvoyer » (Firefox l'a) : Explora ajoute un onglet
+**Renvoyer** aux outils de développement (`F12`, puis l'onglet « Renvoyer », éventuellement derrière `»`).
+
+- La liste montre les requêtes de la page depuis l'ouverture des outils (rechargez la page pour voir les
+  premières). Un clic charge la requête dans l'éditeur ; « Nouvelle » part d'une requête vide.
+- Méthode, URL, en-têtes (un par ligne, `Nom: valeur`, `#` pour désactiver une ligne) et corps sont
+  modifiables. `Ctrl+Entrée` ou « Envoyer » renvoie la requête ; la réponse (statut, durée, en-têtes,
+  corps, JSON mis en forme) s'affiche en dessous.
+- **Depuis le navigateur** (par défaut, comme Firefox) : envoyée avec la session de l'onglet, cookies
+  compris, sans restriction CORS. Un en-tête `Cookie` saisi remplace les cookies de la session.
+  `Host`, `Origin`, `Content-Length`, `Sec-Fetch-*`… restent gérés par le navigateur.
+- **Depuis la page** : `fetch()` exécuté dans la page, la requête apparaît dans l'onglet Réseau, mais
+  CORS s'applique et les en-têtes interdits aux pages (`Cookie`, `Referer`, `Origin`…) sont ignorés.
+
+Fonctionne aussi en navigation privée (avec les cookies de la fenêtre privée).
 
 ### Favoris
 

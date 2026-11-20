@@ -9,6 +9,7 @@ const history = require('./history');
 const bookmarks = require('./bookmarks');
 const extensions = require('./extensions');
 const adblock = require('./adblock');
+const resend = require('./resend');
 const mcp = require('./mcp');
 
 // Hauteur initiale de l'interface ; l'interface envoie ensuite sa vraie hauteur.
@@ -27,7 +28,7 @@ app.userAgentFallback = app.userAgentFallback
   .replace(/\sElectron\/\S+/, '')
   .replace(/\s(?:Custom Nav|custom-nav)\/\S+/gi, '');
 
-internal.registerScheme();
+internal.registerScheme([resend.schemePrivileges]);
 
 // Notifications Windows (WhatsApp, Discord…) : sans identifiant d'application,
 // les notifications ne s'affichent pas quand l'app est lancée depuis les sources.
@@ -368,9 +369,11 @@ function createWindow({ isPrivate = false, restore = true } = {}) {
     onWebContentsCreated: (wc, { devtools = false } = {}) => {
       handleShortcuts(wc);
       if (!devtools) handleContextMenu(wc); // les outils ont leur propre clic droit
+      else resend.attachDevTools(wc);
     },
   });
   adblock.addSession(session.fromPartition(partition)); // pubs bloquées aussi en privé
+  resend.addSession(session.fromPartition(partition)); // onglet « Renvoyer » des DevTools
   const ctx = { win, tabs, isPrivate, partition };
   windows.add(ctx);
   if (!isPrivate) mainCtx = ctx;
@@ -847,6 +850,13 @@ app.whenReady().then(async () => {
     onStatusChange: mcpChanged,
   });
   extensions.onChange(extensionsChanged);
+  // onglet « Renvoyer » des outils de développement (modifier et renvoyer une requête)
+  await resend.init({
+    isTab: (wc) => {
+      const tab = ctxFor(wc)?.tabs.tabFor(wc);
+      return !!tab && tab.view.webContents === wc;
+    },
+  });
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
