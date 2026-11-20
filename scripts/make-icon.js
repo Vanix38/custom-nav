@@ -18,7 +18,7 @@ async function renderMaster() {
   win.webContents.setZoomFactor(1);
   const html = `<html><body style="margin:0;background:transparent">
     <img src="data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}" width="${size}" height="${size}" style="display:block"></body></html>`;
-  const file = path.join(app.getPath('temp'), 'custom-nav-icon.html');
+  const file = path.join(app.getPath('temp'), 'explora-icon.html');
   fs.writeFileSync(file, html);
   await win.loadFile(file);
   await new Promise((r) => setTimeout(r, 500));

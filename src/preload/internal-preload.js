@@ -1,10 +1,10 @@
 // Preload des onglets. Il est chargé pour toutes les pages, mais n'expose
-// son API QUE sur les pages internes customnav:// : les sites web n'y ont
+// son API QUE sur les pages internes explora:// : les sites web n'y ont
 // pas accès. Le processus principal revérifie de toute façon l'origine de
 // chaque message (isInternalSender).
 const { contextBridge, ipcRenderer } = require('electron');
 
-if (location.protocol === 'customnav:') {
+if (location.protocol === 'explora:') {
   const call = (action, ...args) => ipcRenderer.invoke('internal', action, ...args);
 
   contextBridge.exposeInMainWorld('customNav', {
