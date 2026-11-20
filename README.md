@@ -239,6 +239,44 @@ dans une intégration s'ouvrent dans un onglet normal. La barre n'existe pas dan
 Première connexion : WhatsApp demande de scanner un QR code avec le téléphone (WhatsApp >
 Appareils connectés), Discord se connecte par e-mail / mot de passe ou QR code.
 
+### Courrier (client mail intégré)
+
+Un vrai client mail façon Thunderbird, dans un onglet : menu ☰ > **Courrier** ou `Ctrl+Shift+E`
+(page `customnav://mail/`).
+
+- **Plusieurs comptes IMAP / SMTP** : on saisit l'adresse et le mot de passe, les serveurs sont trouvés
+  tout seuls (fournisseurs courants : Gmail, Yahoo, iCloud, Free, Orange, SFR, La Poste, GMX, Fastmail,
+  Proton Bridge ; sinon la base de Thunderbird, sinon `imap.<domaine>` / `smtp.<domaine>`), modifiables
+  dans « Serveurs ». La connexion est testée (réception et envoi) avant d'enregistrer.
+- **Gmail, Yahoo, iCloud** : il faut un *mot de passe d'application* (ex. Gmail :
+  myaccount.google.com/apppasswords, validation en deux étapes activée). **Outlook / Hotmail** n'accepte
+  plus que la connexion OAuth, pas encore prise en charge : utiliser l'intégration Outlook de la barre
+  latérale en attendant.
+- Dossiers (réception, envoyés, brouillons, corbeille… et sous-dossiers) avec le nombre de non-lus,
+  liste des messages (50 par page, « Charger plus »), lecture, pièces jointes (Ouvrir / Enregistrer).
+- **Rédaction** en texte brut : nouveau message, répondre, répondre à tous, transférer (avec les pièces
+  jointes d'origine), Cc / Cci, pièces jointes, signature par compte. Le message envoyé est rangé dans
+  « Envoyés » (Gmail et Outlook le font eux-mêmes).
+- Actions : étoile, marquer non lu, déplacer vers un dossier, supprimer (corbeille).
+- **Recherche** dans le dossier courant (objet, expéditeur, destinataire, texte), faite par le serveur.
+- **Nouveaux messages** : vérifiés en direct (IDLE) et toutes les 2 minutes, même page fermée ;
+  notification Windows (désactivable par compte), clic = ouvre le message. Le nombre de non-lus
+  s'affiche dans le titre de l'onglet et dans le menu ☰.
+- Raccourcis dans la page : `N` nouveau, `R` répondre, `A` répondre à tous, `F` transférer,
+  `Suppr` supprimer, `S` étoile, `U` non lu, `↑` / `↓` (ou `K` / `J`) message précédent / suivant,
+  `/` rechercher, `Ctrl+Entrée` envoyer, `Échap` fermer.
+
+Sécurité et vie privée :
+
+- les mots de passe sont chiffrés par Windows (`safeStorage`, DPAPI) dans
+  `%APPDATA%\custom-nav\mail-accounts.json` et ne sont jamais renvoyés à la page ;
+- les messages HTML s'affichent dans un cadre isolé **sans aucun script** ni formulaire ; les
+  **images distantes sont bloquées** (pixels espions) jusqu'au clic sur « Afficher les images » ;
+  les liens s'ouvrent dans un nouvel onglet ;
+- la page ne manipule que des identifiants (compte, dossier, n° de message, jeton de pièce jointe),
+  jamais de chemin de fichier ; seuls les types de fichiers sans risque s'ouvrent directement ;
+- pas de courrier dans les fenêtres privées.
+
 ### Sélecteur moteurs de recherche / IA
 
 À gauche de la barre d'adresse, une pastille par moteur ou IA (le moteur actif affiche son nom) :
@@ -298,6 +336,7 @@ utilisateur de l'app (`%APPDATA%\Explora\settings.json`).
 | `Ctrl+L` | Aller à la barre d'adresse |
 | `Ctrl+,` | Réglages |
 | `Ctrl+H` | Historique |
+| `Ctrl+Shift+E` | Courrier |
 | `F5` / `Ctrl+R` | Recharger |
 | `Alt+←` / `Alt+→` | Précédent / suivant |
 | `Ctrl+Tab` / `Ctrl+Shift+Tab` | Onglet suivant / précédent |
@@ -321,6 +360,8 @@ src/
     settings.js  lecture / écriture de settings.json
     internal.js  protocole explora:// des pages internes
     messengers.js  barre latérale : catalogue, liste personnalisable, panneaux
+    mail.js      client mail : comptes, IMAP (imapflow), SMTP (nodemailer), notifications
+    mail-providers.js  réglages IMAP / SMTP devinés à partir de l'adresse
   preload/
     ui-preload.js        API de l'interface (barre d'onglets / d'outils)
     internal-preload.js  API des pages internes (n'existe que sur explora://)
@@ -330,7 +371,7 @@ src/
     index.html, styles.css, renderer.js   interface (onglets, barre d'outils)
     messengers.html, .css, .js            barre des messageries
   internal/
-    home.*, settings.*, bookmarks.*, extensions.*, common.css   pages internes
+    home.*, settings.*, bookmarks.*, extensions.*, mail.*, common.css   pages internes
 build/        icône (icon.svg source, icon.ico, icon.png)
 scripts/      make-icon.js (génération de l'icône)
 ```
