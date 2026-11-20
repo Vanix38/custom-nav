@@ -1,15 +1,15 @@
-// Pages internes (accueil, réglages) servies par le protocole customnav://
-//   customnav://home/      -> src/internal/home.html
-//   customnav://settings/  -> src/internal/settings.html
-//   customnav://history/   -> src/internal/history.html
-//   customnav://bookmarks/ -> src/internal/bookmarks.html
-//   customnav://extensions/ -> src/internal/extensions.html
-//   customnav://<page>/x   -> src/internal/x (css, js partagés)
+// Pages internes (accueil, réglages) servies par le protocole explora://
+//   explora://home/      -> src/internal/home.html
+//   explora://settings/  -> src/internal/settings.html
+//   explora://history/   -> src/internal/history.html
+//   explora://bookmarks/ -> src/internal/bookmarks.html
+//   explora://extensions/ -> src/internal/extensions.html
+//   explora://<page>/x   -> src/internal/x (css, js partagés)
 const path = require('path');
 const { pathToFileURL } = require('url');
 const { protocol, net } = require('electron');
 
-const SCHEME = 'customnav';
+const SCHEME = 'explora';
 const ROOT = path.join(__dirname, '..', 'internal');
 const PAGES = new Set(['home', 'settings', 'history', 'bookmarks', 'extensions']);
 

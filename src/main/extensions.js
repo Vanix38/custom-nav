@@ -50,7 +50,7 @@ async function beforeInstall({ localizedName, manifest, icon, browserWindow }) {
   const detail = [
     perms.length ? `Elle pourra :\n• ${perms.join('\n• ')}` : "Elle ne demande pas d'autorisation particulière.",
     '',
-    "Custom Nav n'est pas Chrome : certaines extensions ne fonctionnent qu'en partie, voire pas du tout.",
+    "Explora n'est pas Chrome : certaines extensions ne fonctionnent qu'en partie, voire pas du tout.",
   ].join('\n');
   const options = {
     type: 'question',
@@ -112,7 +112,7 @@ function optionsUrl(ext) {
   return page ? `chrome-extension://${ext.id}/${page.replace(/^\//, '')}` : null;
 }
 
-// Liste affichée dans customnav://extensions/
+// Liste affichée dans explora://extensions/
 function list() {
   if (!extSession) return [];
   return extSession.extensions.getAllExtensions().filter((ext) => !isResendExtension(ext)).map((ext) => ({
