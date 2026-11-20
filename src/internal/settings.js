@@ -264,6 +264,129 @@ api.getConfig().then((c) => {
   renderFavorites();
 });
 
+// --- Barre latérale ---
+const sideApi = api.sidebar;
+
+function sideIcon(item) {
+  if (item.icon) return el('img', { className: 'side-icon', alt: '', src: item.icon });
+  const s = el('span', { className: 'side-icon', textContent: (item.name || '?')[0].toUpperCase() });
+  if (item.color) s.style.background = item.color;
+  return s;
+}
+
+async function sideCall(promise, statusId = 'sidebar-status') {
+  const r = await promise;
+  if (r?.error) {
+    setStatus(statusId, r.error, 'error');
+    return false;
+  }
+  setStatus(statusId, '');
+  if (r?.items) renderSidebar(r);
+  return true;
+}
+
+function sideRow(item, i, st) {
+  const row = el('div', { className: 'side-row' + (item.enabled ? '' : ' off') });
+  row.dataset.id = item.id;
+
+  const up = el('button', { type: 'button', textContent: '▲', title: 'Monter', disabled: i === 0 });
+  const down = el('button', { type: 'button', textContent: '▼', title: 'Descendre', disabled: i === st.items.length - 1 });
+  up.addEventListener('click', () => sideCall(sideApi.move(item.id, -1)));
+  down.addEventListener('click', () => sideCall(sideApi.move(item.id, 1)));
+
+  const name = el('input', { type: 'text', className: 'name', value: item.name, placeholder: 'Nom' });
+  name.setAttribute('aria-label', 'Nom');
+  name.addEventListener('change', () => sideCall(sideApi.update(item.id, { name: name.value })));
+
+  const url = el('input', { type: 'text', className: 'url', value: item.url, placeholder: 'https://…' });
+  url.setAttribute('aria-label', 'Adresse');
+  url.addEventListener('change', () => sideCall(sideApi.update(item.id, { url: url.value })));
+
+  const width = el('select', { className: 'width', title: 'Largeur du panneau' },
+    ...Object.entries(st.widths).map(([value, label]) => el('option', { value, textContent: label })));
+  width.value = item.width;
+  width.setAttribute('aria-label', 'Largeur du panneau');
+  width.addEventListener('change', () => sideCall(sideApi.update(item.id, { width: width.value })));
+
+  const enabledBox = el('input', { type: 'checkbox', checked: item.enabled });
+  enabledBox.addEventListener('change', () => sideCall(sideApi.update(item.id, { enabled: enabledBox.checked })));
+  const enabled = el('label', { className: 'enabled', title: 'Chargée en arrière-plan (messages, notifications)' }, enabledBox, ' Activée');
+
+  const del = el('button', { type: 'button', className: 'del danger icon', textContent: '✕', title: `Retirer ${item.name}` });
+  del.addEventListener('click', () => {
+    if (del.dataset.confirm !== '1') {
+      del.dataset.confirm = '1';
+      del.textContent = 'Retirer ?';
+      setStatus('sidebar-status', `Retirer ${item.name} efface aussi ses données de connexion. Clique à nouveau pour confirmer.`);
+      setTimeout(() => {
+        delete del.dataset.confirm;
+        del.textContent = '✕';
+      }, 5000);
+      return;
+    }
+    sideCall(sideApi.remove(item.id));
+  });
+
+  const iconUrl = el('input', {
+    type: 'text',
+    className: 'icon-url',
+    placeholder: item.customIcon
+      ? 'Icône personnalisée (vider puis Entrée pour reprendre celle du site)'
+      : "Icône personnalisée : adresse d'une image (facultatif)",
+  });
+  iconUrl.setAttribute('aria-label', "Adresse de l'icône");
+  iconUrl.addEventListener('change', () => {
+    if (iconUrl.value) sideCall(sideApi.update(item.id, { iconUrl: iconUrl.value }));
+  });
+  iconUrl.addEventListener('keydown', (e) => {
+    // Entrée sur un champ vide : revient à l'icône du site
+    if (e.key === 'Enter' && !iconUrl.value && item.customIcon) sideCall(sideApi.update(item.id, { iconUrl: '' }));
+  });
+
+  const badgeBox = el('input', { type: 'checkbox', checked: item.badge });
+  badgeBox.addEventListener('change', () => sideCall(sideApi.update(item.id, { badge: badgeBox.checked })));
+  const badge = el('label', { className: 'badge-opt', title: 'Nombre de non-lus lu dans le titre de la page' }, badgeBox, ' Badge non-lus');
+
+  row.append(el('div', { className: 'move' }, up, down), sideIcon(item), name, url, width, enabled, del, iconUrl, badge);
+  return row;
+}
+
+function renderSidebar(st) {
+  $('sidebar-visible').checked = st.railVisible;
+  // pas de reconstruction pendant qu'on écrit dans un champ de la liste
+  if (!document.activeElement?.closest?.('#sidebar-list input[type=text]')) {
+    $('sidebar-list').replaceChildren(...(st.items.length
+      ? st.items.map((item, i) => sideRow(item, i, st))
+      : [el('p', { className: 'help', textContent: 'Aucune intégration : ajoute-en une ci-dessous.' })]));
+  }
+  $('sidebar-catalog').replaceChildren(...st.catalog.map((p) => {
+    const b = el('button', { type: 'button', disabled: p.added, title: p.added ? 'Déjà dans la barre' : `Ajouter ${p.name} (${p.url})` },
+      sideIcon({ name: p.name, color: p.color }), p.name);
+    b.addEventListener('click', () => sideCall(sideApi.add({ preset: p.id }), 'sidebar-add-status'));
+    return b;
+  }));
+}
+
+$('sidebar-visible').addEventListener('change', (e) => sideCall(sideApi.setVisible(e.target.checked)));
+$('sidebar-custom').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = e.submitter;
+  if (btn) btn.disabled = true;
+  setStatus('sidebar-add-status', 'Ajout…');
+  const ok = await sideCall(sideApi.add({
+    name: $('custom-name').value,
+    url: $('custom-url').value,
+    iconUrl: $('custom-icon').value,
+  }), 'sidebar-add-status');
+  if (btn) btn.disabled = false;
+  if (ok) {
+    $('sidebar-custom').reset();
+    setStatus('sidebar-add-status', 'Site ajouté à la barre latérale.', 'ok');
+  }
+});
+sideApi.onChange(renderSidebar);
+sideApi.get().then(renderSidebar);
+
 // --- Bloqueur de publicités ---
 const adApi = api.adblock;
 

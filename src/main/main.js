@@ -385,7 +385,10 @@ function createWindow({ isPrivate = false, restore = true } = {}) {
   handleShortcuts(win.webContents);
   // Barre des messageries (WhatsApp, Discord) : fenêtre normale uniquement
   if (!isPrivate) {
-    messengers.attach({
+    messengers.onSettingsChange((state) => {
+    for (const c of windows) c.tabs.broadcastInternal('internal:sidebar', state);
+  });
+  messengers.attach({
       win,
       tabs,
       openInTab: (url) => tabs.create(url),
@@ -481,7 +484,7 @@ ipcMain.on('ui:app-menu', fromUi((ctx, x, y) => {
     { label: 'Historique', accelerator: 'Ctrl+H', click: () => openHistory(ctx) },
     { label: 'Favoris', accelerator: 'Ctrl+Shift+O', click: () => openBookmarksManager(ctx) },
     { label: 'Extensions', click: () => ctx.tabs.focusOrCreate(config.EXTENSIONS_PAGE) },
-    ...(ctx.isPrivate ? [] : [{ label: 'Barre des messageries', accelerator: 'Ctrl+Shift+M', click: () => messengers.toggleRail() }]),
+    ...(ctx.isPrivate ? [] : [{ label: 'Barre latérale', accelerator: 'Ctrl+Shift+M', click: () => messengers.toggleRail() }]),
     { label: 'Outils de développement', accelerator: 'F12', click: () => ctx.tabs.toggleDevTools() },
     { type: 'separator' },
     { label: 'Paramètres', accelerator: 'Ctrl+,', click: () => openSettings(ctx) },
@@ -597,6 +600,13 @@ const INTERNAL_ACTIONS = {
   'mcp-status': () => mcp.status(),
   'mcp-set-enabled': (on) => mcp.setEnabled(on),
   'mcp-regenerate-token': () => mcp.regenerateToken(),
+  // barre latérale (messageries et sites intégrés)
+  'sidebar-get': () => messengers.settingsState(),
+  'sidebar-add': (data) => messengers.addItem(data || {}),
+  'sidebar-update': (id, patch) => messengers.updateItem(String(id || ''), patch || {}),
+  'sidebar-remove': (id) => messengers.removeItem(String(id || '')),
+  'sidebar-move': (id, delta) => messengers.moveItem(String(id || ''), Number(delta) || 0),
+  'sidebar-set-visible': (on) => messengers.setRailVisible(!!on),
   'clear-browsing-data': async () => {
     const ses = session.fromPartition(PARTITION);
     await ses.clearStorageData(); // cookies, localStorage, IndexedDB, service workers…
