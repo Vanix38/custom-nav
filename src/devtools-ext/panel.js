@@ -1,7 +1,7 @@
 // Onglet « Renvoyer » : liste les requêtes de l'onglet inspecté, permet d'en
 // modifier une (méthode, URL, en-têtes, corps) et de la renvoyer. L'envoi est
-// fait par Custom Nav (src/main/resend.js) via customnav-devtools://resend/.
-const ENDPOINT = 'customnav-devtools://resend/';
+// fait par Explora (src/main/resend.js) via explora-devtools://resend/.
+const ENDPOINT = 'explora-devtools://resend/';
 const MAX_ENTRIES = 1000;
 
 const $ = (id) => document.getElementById(id);
@@ -174,7 +174,7 @@ form.addEventListener('submit', async (ev) => {
     return;
   }
   const payload = {
-    token: window.customNavResendToken, // déposé par Custom Nav
+    token: window.customNavResendToken, // déposé par Explora
     tabId: chrome.devtools.inspectedWindow.tabId,
     mode: mode(),
     method: methodInput.value.trim().toUpperCase() || 'GET',
@@ -203,7 +203,7 @@ form.addEventListener('submit', async (ev) => {
       renderSoon();
     }
   } catch (e) {
-    showResult({ error: `Custom Nav n'a pas pu envoyer la requête (${e.message}).` });
+    showResult({ error: `Explora n'a pas pu envoyer la requête (${e.message}).` });
   } finally {
     sendBtn.disabled = false;
     sendBtn.textContent = 'Envoyer';

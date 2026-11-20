@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Custom Nav – Renvoyer",
+  "name": "Explora – Renvoyer",
   "description": "Onglet « Renvoyer » des outils de développement : modifier et renvoyer une requête réseau.",
   "version": "1.0.0",
   "devtools_page": "devtools.html"

@@ -68,7 +68,7 @@ npm start
 
 ### Modifier et renvoyer une requête
 
-Les DevTools de Chrome n'ont pas « Modifier et renvoyer » (Firefox l'a) : Custom Nav ajoute un onglet
+Les DevTools de Chrome n'ont pas « Modifier et renvoyer » (Firefox l'a) : Explora ajoute un onglet
 **Renvoyer** aux outils de développement (`F12`, puis l'onglet « Renvoyer », éventuellement derrière `»`).
 
 - La liste montre les requêtes de la page depuis l'ouverture des outils (rechargez la page pour voir les

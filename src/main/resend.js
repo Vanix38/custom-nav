@@ -4,7 +4,7 @@
 // petite extension DevTools intégrée (src/devtools-ext) qui crée l'onglet
 // « Renvoyer » : elle liste les requêtes de l'onglet inspecté
 // (chrome.devtools.network), permet de les modifier, puis demande au processus
-// principal de les envoyer via customnav-devtools://resend/.
+// principal de les envoyer via explora-devtools://resend/.
 //
 // Deux façons d'envoyer :
 //   - « navigateur » (par défaut, comme Firefox) : le processus principal envoie
@@ -22,13 +22,13 @@
 //     TabManager.openDevTools) : sans ça, DevTools refuse la page de
 //     l'extension (origine « null »). Cette session ne contient que
 //     l'interface et les outils de développement, jamais de site web.
-// Le point d'entrée customnav-devtools:// n'existe que dans la session par
+// Le point d'entrée explora-devtools:// n'existe que dans la session par
 // défaut, et ne répond qu'à l'extension (voir attachDevTools).
 const path = require('path');
 const crypto = require('crypto');
 const { session, webContents: allWebContents, webFrameMain } = require('electron');
 
-const SCHEME = 'customnav-devtools';
+const SCHEME = 'explora-devtools';
 const EXT_DIR = path.join(__dirname, '..', 'devtools-ext').replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
 const MAX_BODY = 5 * 1024 * 1024; // corps de réponse affiché au plus (texte)
 const TIMEOUT = 60 * 1000;
@@ -118,7 +118,7 @@ async function sendFromBrowser(wc, req) {
     res = await wc.session.fetch(req.url, init);
   } catch (e) {
     if (/ERR_BLOCKED_BY_CLIENT/.test(e?.message)) {
-      throw new Error('Requête bloquée par le bloqueur de pubs de Custom Nav (autorisez le site depuis son bouton, puis réessayez).');
+      throw new Error('Requête bloquée par le bloqueur de pubs d’Explora (autorisez le site depuis son bouton, puis réessayez).');
     }
     throw e;
   }
@@ -180,7 +180,7 @@ const addSession = (ses) => loadInto(ses);
 
 const isResendExtension = (ext) => !!ext?.path && path.resolve(ext.path) === path.resolve(EXT_DIR);
 
-// Les requêtes vers customnav-devtools:// n'ont pas d'en-tête Origin : on
+// Les requêtes vers explora-devtools:// n'ont pas d'en-tête Origin : on
 // authentifie l'onglet « Renvoyer » avec un jeton secret, que le processus
 // principal dépose lui-même dans la page de l'extension (et uniquement là,
 // d'après l'origine réelle du cadre) à chaque ouverture des outils.
