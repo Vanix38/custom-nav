@@ -63,6 +63,23 @@ npm start
 - Outils de développement (les DevTools de Chrome) ancrés à droite de la page : `F12`, `Ctrl+Shift+I`,
   menu ☰, ou clic droit > « Inspecter l'élément »
 - Favoris : étoile dans la barre d'adresse, barre de favoris, dossiers, import depuis Chrome / Edge / Brave, voir ci-dessous
+- **Écran partagé** : plusieurs onglets côte à côte dans la fenêtre (jusqu'à 4), par exemple Google
+  d'un côté et Google Sheets de l'autre, voir ci-dessous
+
+### Écran partagé
+
+- Bouton **▯▯** de la barre d'outils, `Ctrl+Shift+S` ou menu ☰ > « Écran partagé » : ouvre un nouveau
+  panneau à droite de l'onglet courant (la barre d'adresse est prête pour taper l'adresse ou la recherche).
+  Même bouton / raccourci pour fermer l'écran partagé : les onglets restent ouverts, séparément.
+- Clic droit sur un autre onglet > « Afficher à côté de l'onglet actif » : le met dans l'écran partagé
+  (jusqu'à 4 panneaux). Clic droit sur un lien > « Ouvrir le lien dans l'écran partagé ».
+- Le panneau actif (entouré d'un liseré) est celui que pilotent la barre d'adresse, Précédent, Recharger,
+  les pastilles moteurs / IA… : il suffit de cliquer dans un panneau pour le rendre actif.
+- **Séparateur** entre les panneaux : glisser pour redimensionner, double-clic pour des parts égales.
+- Dans la barre d'onglets, les onglets d'un écran partagé sont collés et soulignés d'un trait de couleur ;
+  cliquer sur l'un d'eux réaffiche tout l'écran partagé. Clic droit : retirer de l'écran partagé,
+  inverser les panneaux, fermer l'écran partagé.
+- Les écrans partagés (et la taille des panneaux) sont rouverts au lancement suivant avec les onglets.
 
 ### Favoris
 
@@ -244,6 +261,7 @@ utilisateur de l'app (`%APPDATA%custom-navsettings.json`).
 | --- | --- |
 | `Ctrl+T` | Nouvel onglet |
 | `Ctrl+Shift+N` | Nouvelle fenêtre privée |
+| `Ctrl+Shift+S` | Ouvrir / fermer l'écran partagé |
 | `F12` / `Ctrl+Shift+I` | Outils de développement |
 | `Ctrl+D` | Ajouter / retirer la page des favoris |
 | `Ctrl+Shift+B` | Afficher / masquer la barre de favoris |
