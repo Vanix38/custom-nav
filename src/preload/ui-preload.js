@@ -14,6 +14,11 @@ contextBridge.exposeInMainWorld('nav', {
   closeTab: (id) => ipcRenderer.send('tabs:close', id),
   activateTab: (id) => ipcRenderer.send('tabs:activate', id),
   tabContextMenu: (id, x, y) => ipcRenderer.send('tabs:context-menu', id, x, y),
+  // groupes d'onglets
+  toggleGroup: (id) => ipcRenderer.send('groups:toggle', id),
+  renameGroup: (id, title) => ipcRenderer.send('groups:rename', id, title),
+  groupContextMenu: (id, x, y) => ipcRenderer.send('groups:context-menu', id, x, y),
+  onRenameGroup: (cb) => ipcRenderer.on('ui:rename-group', (_e, id) => cb(id)),
   go: (input) => ipcRenderer.send('nav:go', input),
   back: () => ipcRenderer.send('nav:back'),
   forward: () => ipcRenderer.send('nav:forward'),
