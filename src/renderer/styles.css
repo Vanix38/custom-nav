@@ -152,6 +152,89 @@ html, body {
 
 .tab .close:hover { background: var(--hover); color: var(--fg); }
 
+/* --- Groupes d'onglets --- */
+/* Teintes des groupes (mêmes noms que GROUP_COLORS dans src/main/tabs.js) */
+.group-grey   { --group: #8e939c; }
+.group-blue   { --group: #5b8def; }
+.group-red    { --group: #e5534b; }
+.group-yellow { --group: #e3b341; }
+.group-green  { --group: #4fb36b; }
+.group-pink   { --group: #e86fb4; }
+.group-purple { --group: #a77bf0; }
+.group-cyan   { --group: #3fb6c9; }
+.group-orange { --group: #ee8a3c; }
+
+@media (prefers-color-scheme: light) {
+  .group-grey   { --group: #5f6368; }
+  .group-blue   { --group: #1a73e8; }
+  .group-red    { --group: #d93025; }
+  .group-yellow { --group: #c48a00; }
+  .group-green  { --group: #188038; }
+  .group-pink   { --group: #d01884; }
+  .group-purple { --group: #8430ce; }
+  .group-cyan   { --group: #007b83; }
+  .group-orange { --group: #e8710a; }
+}
+
+.tab-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  max-width: 160px;
+  height: 22px;
+  margin: 0 2px 4px 4px;
+  padding: 0 9px;
+  border-radius: 7px;
+  background: var(--group);
+  color: #fff;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+@media (prefers-color-scheme: dark) {
+  .tab-group { color: #15161a; }
+}
+
+.tab-group .label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* groupe sans nom : simple pastille de couleur */
+.tab-group.unnamed:not(.collapsed):not(.editing) { width: 16px; padding: 0; }
+.tab-group.unnamed .label:empty { display: none; }
+
+.tab-group .count {
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+  font-size: 11px;
+  text-align: center;
+}
+.tab-group .count[hidden] { display: none; }
+
+.tab-group .group-name {
+  width: auto;
+  min-width: 60px;
+  max-width: 140px;
+  height: 18px;
+  padding: 0 4px;
+  border: none;
+  border-radius: 4px;
+  outline: none;
+  background: var(--bg-input);
+  color: var(--fg);
+  font: inherit;
+  font-weight: 600;
+}
+
+/* onglets d'un groupe : liseré de la couleur du groupe */
+.tab.grouped { box-shadow: inset 0 -2px 0 var(--group); }
+.tab.collapsed { display: none; }
+
 /* --- Barre d'outils --- */
 #toolbar {
   height: calc(var(--chrome-height) - var(--tabbar-height));
@@ -179,7 +262,7 @@ html, body {
 .icon-btn:disabled { color: var(--muted); cursor: default; }
 .icon-btn svg { display: block; margin: auto; }
 #new-tab { margin-bottom: 3px; }
-#tabbar .tab, #tabbar button { -webkit-app-region: no-drag; }
+#tabbar .tab, #tabbar .tab-group, #tabbar button { -webkit-app-region: no-drag; }
 
 #private-badge {
   display: flex;

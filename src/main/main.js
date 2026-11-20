@@ -1,13 +1,16 @@
 const path = require('path');
 const { app, BrowserWindow, Menu, clipboard, ipcMain, nativeTheme, session, webContents: allWebContents } = require('electron');
-const { TabManager, PARTITION } = require('./tabs');
+const { TabManager, PARTITION, GROUP_COLORS } = require('./tabs');
 const { getEngines, getEngine, iconFor, buildEngineTarget, resolveInput, isHttpUrl } = require('./search');
 const internal = require('./internal');
+const messengers = require('./messengers');
 const config = require('./config');
+const history = require('./history');
 const bookmarks = require('./bookmarks');
 const extensions = require('./extensions');
 const adblock = require('./adblock');
 const resend = require('./resend');
+const mcp = require('./mcp');
 
 // Hauteur initiale de l'interface ; l'interface envoie ensuite sa vraie hauteur.
 const CHROME_HEIGHT = 80;
@@ -26,6 +29,10 @@ app.userAgentFallback = app.userAgentFallback
   .replace(/\s(?:Custom Nav|custom-nav)\/\S+/gi, '');
 
 internal.registerScheme([resend.schemePrivileges]);
+
+// Notifications Windows (WhatsApp, Discord…) : sans identifiant d'application,
+// les notifications ne s'affichent pas quand l'app est lancée depuis les sources.
+if (process.platform === 'win32') app.setAppUserModelId('com.vanix38.customnav');
 
 // Une entrée par fenêtre ouverte : { win, tabs, isPrivate, partition }.
 // Il y a au plus une fenêtre normale (celle dont les onglets sont rouverts au
@@ -91,6 +98,10 @@ function resendTo(ctx, engineId, typed) {
 
 function openSettings(ctx) {
   ctx.tabs.focusOrCreate(config.SETTINGS_PAGE);
+}
+
+function openHistory(ctx) {
+  ctx.tabs.focusOrCreate(config.HISTORY_PAGE);
 }
 
 function newTab(ctx) {
@@ -189,59 +200,68 @@ function digitIndex(input) {
 // Raccourcis clavier, interceptés à la fois dans l'interface et dans les pages
 function handleShortcuts(webContents) {
   webContents.on('before-input-event', (event, input) => {
-    if (input.type !== 'keyDown') return;
     const ctx = ctxFor(webContents);
-    if (!ctx) return;
-    const { tabs } = ctx;
-    const ctrl = input.control || input.meta;
-    const key = input.key.toLowerCase();
-    const digit = digitIndex(input);
-    const engines = getEngines();
-    let handled = true;
-
-    if (ctrl && digit >= 0 && digit < engines.length) {
-      if (input.shift) {
-        // passe par l'interface, qui connaît le texte en cours de saisie
-        sendToUi(ctx, 'ui:resend', engines[digit].id);
-      } else {
-        setActiveEngine(engines[digit].id);
-      }
-    } else if (ctrl && input.shift && key === 'n') {
-      createWindow({ isPrivate: true });
-    } else if (ctrl && !input.shift && key === 'n') {
-      openNormalWindow();
-    } else if (key === 'f12' || (ctrl && input.shift && key === 'i')) {
-      tabs.toggleDevTools();
-    } else if (ctrl && !input.shift && key === 'd') {
-      toggleBookmark(ctx);
-    } else if (ctrl && input.shift && key === 'b') {
-      toggleBookmarksBar();
-    } else if (ctrl && input.shift && key === 'o') {
-      openBookmarksManager(ctx);
-    } else if (ctrl && !input.shift && key === 't') {
-      newTab(ctx);
-    } else if (ctrl && key === 'w') {
-      tabs.close();
-    } else if (ctrl && key === 'l') {
-      ctx.win.webContents.focus();
-      sendToUi(ctx, 'ui:focus-address');
-    } else if (ctrl && key === ',') {
-      openSettings(ctx);
-    } else if (key === 'f5' || (ctrl && key === 'r')) {
-      tabs.reload();
-    } else if (input.alt && key === 'arrowleft') {
-      tabs.goBack();
-    } else if (input.alt && key === 'arrowright') {
-      tabs.goForward();
-    } else if (ctrl && key === 'tab') {
-      const i = tabs.order.indexOf(tabs.activeId);
-      const n = tabs.order.length;
-      tabs.activate(tabs.order[(i + (input.shift ? n - 1 : 1)) % n]);
-    } else {
-      handled = false;
-    }
-    if (handled) event.preventDefault();
+    if (ctx) runShortcut(ctx, event, input);
   });
+}
+
+function runShortcut(ctx, event, input) {
+  if (input.type !== 'keyDown') return;
+  const { tabs } = ctx;
+  const ctrl = input.control || input.meta;
+  const key = input.key.toLowerCase();
+  const digit = digitIndex(input);
+  const engines = getEngines();
+  let handled = true;
+
+  if (ctrl && digit >= 0 && digit < engines.length) {
+    if (input.shift) {
+      // passe par l'interface, qui connaît le texte en cours de saisie
+      sendToUi(ctx, 'ui:resend', engines[digit].id);
+    } else {
+      setActiveEngine(engines[digit].id);
+    }
+  } else if (ctrl && input.shift && key === 'm') {
+    messengers.toggleRail();
+  } else if (ctrl && input.shift && key === 'n') {
+    createWindow({ isPrivate: true });
+  } else if (ctrl && !input.shift && key === 'n') {
+    openNormalWindow();
+  } else if (key === 'f12' || (ctrl && input.shift && key === 'i')) {
+    tabs.toggleDevTools();
+  } else if (ctrl && !input.shift && key === 'd') {
+    toggleBookmark(ctx);
+  } else if (ctrl && input.shift && key === 'b') {
+    toggleBookmarksBar();
+  } else if (ctrl && input.shift && key === 'o') {
+    openBookmarksManager(ctx);
+  } else if (ctrl && !input.shift && key === 't') {
+    newTab(ctx);
+  } else if (ctrl && key === 'w') {
+    tabs.close();
+  } else if (ctrl && key === 'l') {
+    ctx.win.webContents.focus();
+    sendToUi(ctx, 'ui:focus-address');
+  } else if (ctrl && key === ',') {
+    openSettings(ctx);
+  } else if (ctrl && !input.shift && key === 'h') {
+    openHistory(ctx);
+  } else if (key === 'f5' || (ctrl && key === 'r')) {
+    tabs.reload();
+  } else if (input.alt && key === 'arrowleft') {
+    tabs.goBack();
+  } else if (input.alt && key === 'arrowright') {
+    tabs.goForward();
+  } else if (ctrl && key === 'tab') {
+    // les onglets des groupes repliés sont sautés
+    const visible = tabs.order.filter((t) => t === tabs.activeId || tabs.isVisible(t));
+    const i = visible.indexOf(tabs.activeId);
+    const n = visible.length;
+    tabs.activate(visible[(i + (input.shift ? n - 1 : 1)) % n]);
+  } else {
+    handled = false;
+  }
+  if (handled) event.preventDefault();
 }
 
 // --- Session : onglets rouverts au prochain lancement ---
@@ -266,7 +286,15 @@ function openInitialTabs(ctx, restore) {
     return;
   }
   const ids = saved.map((t) => ctx.tabs.create({ url: t.url, query: t.query }, { activate: false }));
-  ctx.tabs.activate(ids[Math.min(last.active || 0, ids.length - 1)]);
+  // groupes d'onglets
+  (Array.isArray(last.groups) ? last.groups : []).forEach((g, gi) => {
+    const members = ids.filter((_id, i) => saved[i].group === gi);
+    if (members.length && g) ctx.tabs.createGroup(members, { title: g.title || '', color: g.color, collapsed: !!g.collapsed });
+  });
+  // l'onglet actif : de préférence un onglet visible (hors groupe replié)
+  let active = ids[Math.min(last.active || 0, ids.length - 1)];
+  if (!ctx.tabs.isVisible(active)) active = ids.find((id) => ctx.tabs.isVisible(id)) ?? active;
+  ctx.tabs.activate(active);
 }
 
 // Barre de titre intégrée : les onglets sont sur la même ligne que les boutons
@@ -359,7 +387,27 @@ function createWindow({ isPrivate = false, restore = true } = {}) {
   tabs.on('tab-activated', (tab) => extensions.selectTab(tab.view.webContents));
   tabs.on('tab-closed', (tab) => extensions.removeTab(tab.view.webContents));
 
+  // Historique : seulement la fenêtre normale, rien n'est écrit en navigation privée
+  if (!isPrivate) {
+    tabs.on('visit', (tab, { inPage }) => {
+      tab.historyId = history.addVisit(tab.url, inPage ? tab.title : '');
+    });
+    tabs.on('title', (tab) => history.setTitle(tab.historyId, tab.url, tab.title));
+  }
+
   handleShortcuts(win.webContents);
+  // Barre des messageries (WhatsApp, Discord) : fenêtre normale uniquement
+  if (!isPrivate) {
+    messengers.onSettingsChange((state) => {
+    for (const c of windows) c.tabs.broadcastInternal('internal:sidebar', state);
+  });
+  messengers.attach({
+      win,
+      tabs,
+      openInTab: (url) => tabs.create(url),
+      onShortcut: (event, input) => runShortcut(ctx, event, input),
+    });
+  }
   win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'), {
     query: isPrivate ? { private: '1' } : {},
   });
@@ -403,6 +451,94 @@ ipcMain.on('tabs:new', fromUi((ctx, input) => {
 }));
 ipcMain.on('tabs:close', fromUi(({ tabs }, id) => tabs.close(id)));
 ipcMain.on('tabs:activate', fromUi(({ tabs }, id) => tabs.activate(id)));
+// Clic droit sur un onglet
+ipcMain.on('tabs:context-menu', fromUi((ctx, id, x, y) => {
+  const { tabs } = ctx;
+  const i = tabs.order.indexOf(id);
+  if (i < 0) return;
+  const tab = tabs.tabs.get(id);
+  const others = tabs.order.filter((t) => t !== id);
+  const right = tabs.order.slice(i + 1);
+  const left = tabs.order.slice(0, i);
+  // « Ajouter l'onglet au groupe » : nouveau groupe ou un groupe existant
+  const otherGroups = [...tabs.groups.values()].filter((g) => g.id !== tab.groupId);
+  const newGroup = () => {
+    const gid = tabs.createGroup([id]);
+    if (gid) renameGroupInUi(ctx, gid); // on propose tout de suite de le nommer
+  };
+  const groupItems = otherGroups.length
+    ? [{
+        label: "Ajouter l'onglet au groupe",
+        submenu: [
+          { label: 'Nouveau groupe', click: newGroup },
+          { type: 'separator' },
+          ...otherGroups.map((g) => ({ label: groupLabel(tabs, g), click: () => tabs.addToGroup([id], g.id) })),
+        ],
+      }]
+    : [{ label: "Ajouter l'onglet à un nouveau groupe", click: newGroup }];
+  if (tab.groupId) groupItems.push({ label: 'Retirer du groupe', click: () => tabs.removeFromGroup([id]) });
+  Menu.buildFromTemplate([
+    { label: 'Nouvel onglet', click: () => newTab(ctx) },
+    { label: 'Recharger', click: () => tab.view.webContents.reload() },
+    { label: 'Dupliquer', enabled: isHttpUrl(tab.url) || internal.isInternalUrl(tab.url), click: () => tabs.create({ url: tab.url, query: tab.query }, { groupId: tab.groupId }) },
+    { type: 'separator' },
+    ...groupItems,
+    { type: 'separator' },
+    { label: 'Fermer', accelerator: 'Ctrl+W', click: () => tabs.close(id) },
+    { label: 'Fermer les autres onglets', enabled: others.length > 0, click: () => { tabs.closeMany(others); tabs.activate(id); } },
+    { label: 'Fermer les onglets à droite', enabled: right.length > 0, click: () => tabs.closeMany(right) },
+    { label: 'Fermer les onglets à gauche', enabled: left.length > 0, click: () => tabs.closeMany(left) },
+  ]).popup({ window: ctx.win, x: Math.round(x), y: Math.round(y) });
+}));
+
+// --- Groupes d'onglets ---
+// Nom affiché d'un groupe dans les menus (sans nom : couleur + nombre d'onglets)
+function groupLabel(tabs, g) {
+  if (g.title) return g.title;
+  const color = GROUP_COLORS.find((c) => c.id === g.color)?.name || 'Groupe';
+  const n = tabs.groupTabIds(g.id).length;
+  return `${color} (${n} onglet${n > 1 ? 's' : ''})`;
+}
+
+// Champ de saisie du nom dans l'étiquette du groupe (l'interface prend le focus clavier)
+function renameGroupInUi(ctx, gid) {
+  ctx.win.webContents.focus();
+  sendToUi(ctx, 'ui:rename-group', gid);
+}
+
+ipcMain.on('groups:toggle', fromUi(({ tabs }, gid) => tabs.toggleGroupCollapsed(gid)));
+ipcMain.on('groups:rename', fromUi(({ tabs }, gid, title) => {
+  if (typeof title === 'string') tabs.updateGroup(gid, { title });
+}));
+// Clic droit sur l'étiquette d'un groupe
+ipcMain.on('groups:context-menu', fromUi((ctx, gid, x, y) => {
+  const { tabs } = ctx;
+  const group = tabs.groups.get(gid);
+  if (!group) return;
+  popupMenu(ctx, [
+    { label: 'Renommer le groupe…', click: () => renameGroupInUi(ctx, gid) },
+    {
+      label: 'Couleur',
+      submenu: GROUP_COLORS.map((c) => ({
+        label: c.name,
+        type: 'radio',
+        checked: group.color === c.id,
+        click: () => tabs.updateGroup(gid, { color: c.id }),
+      })),
+    },
+    { type: 'separator' },
+    { label: 'Nouvel onglet dans le groupe', click: () => {
+      tabs.create(undefined, { groupId: gid });
+      ctx.win.webContents.focus();
+      sendToUi(ctx, 'ui:focus-address');
+    } },
+    { label: group.collapsed ? 'Déplier le groupe' : 'Replier le groupe', click: () => tabs.toggleGroupCollapsed(gid) },
+    { label: 'Dissocier le groupe', click: () => tabs.ungroup(gid) },
+    { type: 'separator' },
+    { label: 'Fermer le groupe', click: () => tabs.closeGroup(gid) },
+  ], x, y);
+}));
+
 ipcMain.on('nav:go', fromUi(({ tabs }, input) => tabs.navigate(resolveInput(input, activeEngineId()))));
 ipcMain.on('nav:back', fromUi(({ tabs }) => tabs.goBack()));
 ipcMain.on('nav:forward', fromUi(({ tabs }) => tabs.goForward()));
@@ -426,15 +562,23 @@ ipcMain.on('ui:app-menu', fromUi((ctx, x, y) => {
     { label: 'Nouvel onglet', accelerator: 'Ctrl+T', click: () => newTab(ctx) },
     { label: 'Nouvelle fenêtre privée', accelerator: 'Ctrl+Shift+N', click: () => createWindow({ isPrivate: true }) },
     { type: 'separator' },
+    { label: 'Historique', accelerator: 'Ctrl+H', click: () => openHistory(ctx) },
     { label: 'Favoris', accelerator: 'Ctrl+Shift+O', click: () => openBookmarksManager(ctx) },
     { label: 'Extensions', click: () => ctx.tabs.focusOrCreate(config.EXTENSIONS_PAGE) },
+    ...(ctx.isPrivate ? [] : [{ label: 'Barre latérale', accelerator: 'Ctrl+Shift+M', click: () => messengers.toggleRail() }]),
     { label: 'Outils de développement', accelerator: 'F12', click: () => ctx.tabs.toggleDevTools() },
     { type: 'separator' },
     { label: 'Paramètres', accelerator: 'Ctrl+,', click: () => openSettings(ctx) },
   ]).popup({ window: ctx.win, x: Math.max(0, Math.round(x) - APP_MENU_WIDTH), y: Math.round(y) });
 }));
 ipcMain.on('ui:open-settings', fromUi((ctx) => openSettings(ctx)));
+ipcMain.on('ui:open-history', fromUi((ctx) => openHistory(ctx)));
 ipcMain.on('ui:new-private-window', fromUi(() => createWindow({ isPrivate: true })));
+// --- Serveur MCP ---
+function mcpChanged() {
+  for (const ctx of windows) ctx.tabs.broadcastInternal('internal:mcp', mcp.status());
+}
+
 // --- Bloqueur de pub : bouton bouclier ---
 function adblockChanged() {
   sendToAllUis('adblock:state', adblock.status());
@@ -511,6 +655,9 @@ const INTERNAL_ACTIONS = {
     return r;
   },
   'set-favorites': (list) => config.setFavorites(list),
+  'history-list': (opts) => history.list(opts || {}),
+  'history-remove': (ids) => history.remove(ids),
+  'history-clear': (range) => history.clear(range),
   // gestionnaire de favoris (customnav://bookmarks/)
   'bookmarks-get': () => bookmarksState(),
   'bookmarks-add-link': (data) => bookmarks.addLink(data),
@@ -530,6 +677,17 @@ const INTERNAL_ACTIONS = {
   'adblock-set-enabled': (on) => adblock.setEnabled(on),
   'adblock-set-allowed': (host, allowed) => adblock.setAllowed(String(host || ''), !!allowed),
   'adblock-update': () => adblock.updateLists(),
+  // serveur MCP (pilotage par une IA)
+  'mcp-status': () => mcp.status(),
+  'mcp-set-enabled': (on) => mcp.setEnabled(on),
+  'mcp-regenerate-token': () => mcp.regenerateToken(),
+  // barre latérale (messageries et sites intégrés)
+  'sidebar-get': () => messengers.settingsState(),
+  'sidebar-add': (data) => messengers.addItem(data || {}),
+  'sidebar-update': (id, patch) => messengers.updateItem(String(id || ''), patch || {}),
+  'sidebar-remove': (id) => messengers.removeItem(String(id || '')),
+  'sidebar-move': (id, delta) => messengers.moveItem(String(id || ''), Number(delta) || 0),
+  'sidebar-set-visible': (on) => messengers.setRailVisible(!!on),
   'clear-browsing-data': async () => {
     const ses = session.fromPartition(PARTITION);
     await ses.clearStorageData(); // cookies, localStorage, IndexedDB, service workers…
@@ -573,7 +731,8 @@ ipcMain.handle('internal', async (event, action, ...args) => {
   if (action === 'open') {
     const url = String(args[0] || '');
     if (!isHttpUrl(url)) return { error: 'Adresse invalide.' };
-    tabs.navigate(url, tab || undefined);
+    if (args[1] || !tab) tabs.create(url, { activate: args[1] !== 'background' });
+    else tabs.navigate(url, tab);
     return {};
   }
 
@@ -582,6 +741,7 @@ ipcMain.handle('internal', async (event, action, ...args) => {
   const result = await fn(...args);
   if (CHANGES_CONFIG.has(action) && !result?.error) configChanged();
   if (action.startsWith('adblock-') && action !== 'adblock-status' && !result?.error) adblockChanged();
+  if (action.startsWith('mcp-') && action !== 'mcp-status' && !result?.error) mcpChanged();
   if (action.startsWith('bookmarks-') && action !== 'bookmarks-get' && action !== 'bookmarks-import-sources' && !result?.error) {
     bookmarksChanged();
   }
@@ -678,6 +838,17 @@ app.whenReady().then(async () => {
     },
   }).then(adblockChanged);
   await extensions.init(PARTITION, extensionImpl);
+  // serveur MCP : l'IA ne voit que la fenêtre normale (jamais les fenêtres privées)
+  mcp.init({
+    getCtx: () => mainCtx || createWindow({ restore: false }),
+    resolveInput: (input) => resolveInput(input, activeEngineId()),
+    listEngines: () => getEngines().map((e) => ({ id: e.id, name: e.name, type: e.type === 'ai' ? 'IA' : 'moteur', active: e.id === activeEngineId() })),
+    searchTarget(query, engineId) {
+      if (engineId && !getEngines().some((e) => e.id === engineId)) return { error: `Moteur inconnu : ${engineId} (voir list_engines).` };
+      return { ...buildEngineTarget(getEngine(engineId || activeEngineId()), query), query };
+    },
+    onStatusChange: mcpChanged,
+  });
   extensions.onChange(extensionsChanged);
   // onglet « Renvoyer » des outils de développement (modifier et renvoyer une requête)
   await resend.init({
@@ -691,6 +862,8 @@ app.whenReady().then(async () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
+
+app.on('before-quit', () => history.saveNow());
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();

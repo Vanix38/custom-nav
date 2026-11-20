@@ -20,7 +20,12 @@ if (location.protocol === 'customnav:') {
     newPrivateWindow: () => call('new-private-window'),
     // recherche depuis la page d'accueil (newTab : ouvrir dans un nouvel onglet)
     search: (text, engineId, newTab) => call('search', text, engineId, newTab),
-    open: (url) => call('open', url),
+    // newTab : true (nouvel onglet) ou 'background' (sans l'afficher)
+    open: (url, newTab) => call('open', url, newTab),
+    // historique de navigation
+    historyList: (opts) => call('history-list', opts),
+    historyRemove: (ids) => call('history-remove', ids),
+    historyClear: (range) => call('history-clear', range),
     // gestionnaire de favoris
     bookmarks: {
       get: () => call('bookmarks-get'),
@@ -50,6 +55,23 @@ if (location.protocol === 'customnav:') {
       setAllowed: (host, allowed) => call('adblock-set-allowed', host, allowed),
       updateLists: () => call('adblock-update'),
       onChange: (cb) => ipcRenderer.on('internal:adblock', (_e, s) => cb(s)),
+    },
+    // serveur MCP
+    mcp: {
+      status: () => call('mcp-status'),
+      setEnabled: (on) => call('mcp-set-enabled', on),
+      regenerateToken: () => call('mcp-regenerate-token'),
+      onChange: (cb) => ipcRenderer.on('internal:mcp', (_e, s) => cb(s)),
+    },
+    // barre latérale (messageries et sites intégrés)
+    sidebar: {
+      get: () => call('sidebar-get'),
+      add: (data) => call('sidebar-add', data),
+      update: (id, patch) => call('sidebar-update', id, patch),
+      remove: (id) => call('sidebar-remove', id),
+      move: (id, delta) => call('sidebar-move', id, delta),
+      setVisible: (on) => call('sidebar-set-visible', on),
+      onChange: (cb) => ipcRenderer.on('internal:sidebar', (_e, s) => cb(s)),
     },
     onConfig: (cb) => ipcRenderer.on('internal:config', (_e, config) => cb(config)),
   });

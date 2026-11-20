@@ -123,9 +123,89 @@ label.radio, label.check {
   .fav-row { grid-template-columns: 1fr; }
 }
 
+/* --- barre latérale --- */
+.side-row {
+  display: grid;
+  grid-template-columns: auto 26px 160px 1fr 150px auto auto;
+  grid-template-areas:
+    "move icon name url width enabled del"
+    "move . iconurl iconurl iconurl badge badge";
+  align-items: center;
+  gap: 8px 10px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+.side-row:first-child { border-top: none; }
+.side-row .move { grid-area: move; display: flex; flex-direction: column; gap: 4px; align-self: start; }
+.side-row .move button { width: 28px; height: 22px; padding: 0; font-size: 11px; }
+.side-row .side-icon { grid-area: icon; }
+.side-row .name { grid-area: name; min-width: 0; }
+.side-row .url { grid-area: url; min-width: 0; }
+.side-row .width { grid-area: width; }
+.side-row .enabled { grid-area: enabled; white-space: nowrap; }
+.side-row .del { grid-area: del; white-space: nowrap; }
+.side-row .icon-url { grid-area: iconurl; min-width: 0; }
+.side-row .badge-opt { grid-area: badge; white-space: nowrap; }
+.side-row.off .name, .side-row.off .url, .side-row.off .side-icon { opacity: 0.55; }
+
+.side-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  object-fit: contain;
+}
+span.side-icon {
+  display: grid;
+  place-items: center;
+  background: #6b6f7b;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.catalog { display: flex; flex-wrap: wrap; gap: 8px; }
+.catalog button { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px 5px 6px; border-radius: 999px; }
+.catalog button .side-icon { width: 20px; height: 20px; font-size: 11px; border-radius: 50%; }
+.catalog button:disabled { opacity: 0.45; }
+
+.custom-form {
+  display: grid;
+  grid-template-columns: 160px 1fr 1fr auto;
+  gap: 8px;
+}
+.help.small { margin: 6px 0 0; font-size: 12px; }
+
+@media (max-width: 760px) {
+  .side-row {
+    grid-template-columns: auto 26px 1fr auto;
+    grid-template-areas:
+      "move icon name del"
+      "move url url url"
+      "move width width enabled"
+      "move iconurl iconurl badge";
+  }
+  .custom-form { grid-template-columns: 1fr; }
+}
+
 /* --- bloqueur de pub --- */
 .allow-row { justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); max-width: 420px; }
 .allow-row .host { font-family: Consolas, monospace; }
 #adblock-allow-form { margin-top: 10px; }
 #adblock-allow-form input { width: 260px; }
 #adblock-lists { margin: 0; }
+
+/* --- MCP --- */
+.copy-row { align-items: flex-start; flex-wrap: nowrap; margin-bottom: 6px; }
+.copy-row code, .copy-row pre {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  font-family: Consolas, monospace;
+  font-size: 12.5px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: all;
+}

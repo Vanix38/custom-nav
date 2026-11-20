@@ -45,7 +45,8 @@ npm start
 
 ## Fonctionnalités
 
-- Barre d'onglets : nouvel onglet, fermeture (bouton × ou clic molette), changement d'onglet
+- Barre d'onglets : nouvel onglet, fermeture (bouton × ou clic molette), changement d'onglet ; clic droit sur un
+  onglet : recharger, dupliquer, fermer, fermer les autres onglets / ceux à droite / ceux à gauche
 - Boutons précédent / suivant / recharger (devient « arrêter » pendant le chargement)
 - Barre d'adresse : une URL (`github.com`, `https://…`, `localhost:3000`) ou du texte → recherche avec le moteur / l'IA actif
 - Les liens `target=_blank` et `window.open` s'ouvrent dans un nouvel onglet
@@ -57,6 +58,8 @@ npm start
   développement, paramètres
 - Page de réglages (menu ☰ ou `Ctrl+,`) : moteurs / IA, page d'accueil, raccourcis, thème, session
 - Navigation privée (menu ☰ ou `Ctrl+Shift+N`), voir ci-dessous
+- Barre latérale à gauche : WhatsApp, Discord, Messenger, Telegram, Slack, Spotify… et sites personnalisés, voir ci-dessous
+- Historique (`Ctrl+H`, menu ☰ ou lien en bas de la page d'accueil) : pages visitées groupées par jour, recherche, suppression d'une page, d'une sélection ou d'une période. Rien n'est enregistré en navigation privée ; conservé 90 jours dans `history.json`
 - Outils de développement (les DevTools de Chrome) ancrés à droite de la page : `F12`, `Ctrl+Shift+I`,
   menu ☰, ou clic droit > « Inspecter l'élément »
 - Onglet « Renvoyer » dans les outils de développement : modifier une requête réseau (méthode, URL,
@@ -117,6 +120,23 @@ listes EasyList, EasyPrivacy, filtres uBlock Origin, Peter Lowe et Liste FR :
 Limites : certains sites détectent les bloqueurs et demandent de les désactiver ; les pubs YouTube
 dépendent de scripts que YouTube change souvent, le blocage peut y être imparfait.
 
+### Pilotage par une IA (serveur MCP)
+
+Custom Nav contient un serveur [MCP](https://modelcontextprotocol.io/) pour qu'une IA comme Claude (Claude Code,
+Claude Desktop…) puisse piloter le navigateur. **Désactivé par défaut** : Paramètres > « Pilotage par une IA
+(MCP) ». Une fois activé, la page affiche la commande à copier pour Claude Code et le bloc de configuration pour
+Claude Desktop (via `mcp-remote`, qui nécessite Node.js).
+
+Outils proposés à l'IA : `list_tabs`, `open_tab`, `navigate` (adresse, recherche, back / forward / reload),
+`search` (avec un moteur ou une IA de la liste, ex. `duckduckgo`, `perplexity`), `list_engines`, `read_page`
+(texte visible et liens), `screenshot`, `click` (sélecteur CSS ou texte du bouton), `type_text` (avec envoi
+du formulaire en option), `activate_tab`, `close_tab`.
+
+Sécurité : le serveur n'écoute que sur `127.0.0.1` (port 47823), exige le jeton affiché dans les réglages
+(`Authorization: Bearer …`, modifiable avec « Changer le jeton »), refuse les requêtes dont l'en-tête `Host`
+n'est pas local, et n'a **jamais accès aux fenêtres privées**. L'IA agit avec tes connexions aux sites :
+n'active le serveur que pour une IA en qui tu as confiance.
+
 ### Extensions Chrome
 
 Le bouton pièce de puzzle (à droite de la barre d'adresse) ouvre `customnav://extensions/` : liste des
@@ -159,6 +179,42 @@ d'onglets et au titre de la fenêtre.
 - Les réglages (moteur actif, liste des moteurs, thème…) restent communs : les modifier depuis une
   fenêtre privée les enregistre comme d'habitude.
 - `Ctrl+N` ramène la fenêtre normale (ou la rouvre si elle a été fermée).
+
+### Barre latérale (messageries et sites intégrés)
+
+Une barre verticale à gauche de la fenêtre normale affiche une icône par intégration
+(WhatsApp et Discord par défaut) :
+
+- **Clic** : ouvre la messagerie dans un panneau à côté de la barre (les onglets se décalent) ;
+  nouveau clic, ou `Ctrl+W` dans la messagerie, pour le refermer.
+- **Badge rouge** : nombre de messages non lus (un simple point pour Discord quand il y a des
+  messages sans mention). Le total s'affiche aussi en pastille sur l'icône de la barre des tâches,
+  qui clignote quand un message arrive alors que la fenêtre est en arrière-plan.
+- **Notifications Windows** : un clic sur la notification ramène la fenêtre et ouvre la messagerie.
+- **Clic droit** : recharger, largeur du panneau (étroit, moyen, large, toute la fenêtre),
+  désactiver / réactiver, se déconnecter, masquer la barre.
+- `Ctrl+Shift+M` masque / réaffiche la barre.
+
+**Paramètres > Barre latérale** (ou clic droit > « Gérer la barre latérale… ») :
+
+- ajouter une intégration prête à l'emploi : WhatsApp, Discord, Messenger, Telegram, Slack,
+  Instagram, Microsoft Teams, Gmail, Outlook, Google Agenda, X, Snapchat, LinkedIn, Spotify, Deezer,
+  YouTube Music, ChatGPT, Claude ;
+- ajouter un **site personnalisé** : nom, adresse et, si on veut, l'adresse d'une image pour
+  l'icône (sinon l'icône du site est récupérée automatiquement) ;
+- réordonner (▲ ▼), renommer, changer l'adresse, la largeur du panneau, activer / désactiver,
+  afficher ou non le badge de non-lus, retirer (efface aussi les données de connexion).
+
+La liste est enregistrée dans `%APPDATA%\custom-nav\messengers.json` (icônes comprises).
+
+Les intégrations activées restent chargées en arrière-plan (panneau fermé) pour recevoir messages et
+notifications ; une intégration désactivée ne consomme plus rien. Chacune a sa propre session
+persistante (`persist:messenger-<id>`) : on reste connecté entre
+les lancements, et « Effacer les données de navigation » ne vous déconnecte pas. Les liens cliqués
+dans une intégration s'ouvrent dans un onglet normal. La barre n'existe pas dans les fenêtres privées.
+
+Première connexion : WhatsApp demande de scanner un QR code avec le téléphone (WhatsApp >
+Appareils connectés), Discord se connecte par e-mail / mot de passe ou QR code.
 
 ### Sélecteur moteurs de recherche / IA
 
@@ -213,9 +269,11 @@ utilisateur de l'app (`%APPDATA%custom-navsettings.json`).
 | `Ctrl+Shift+B` | Afficher / masquer la barre de favoris |
 | `Ctrl+Shift+O` | Gestionnaire de favoris |
 | `Ctrl+N` | Revenir à la fenêtre normale (la rouvre si elle est fermée) |
-| `Ctrl+W` | Fermer l'onglet |
+| `Ctrl+W` | Fermer l'onglet (dans une messagerie : refermer son panneau) |
+| `Ctrl+Shift+M` | Masquer / afficher la barre latérale |
 | `Ctrl+L` | Aller à la barre d'adresse |
 | `Ctrl+,` | Réglages |
+| `Ctrl+H` | Historique |
 | `F5` / `Ctrl+R` | Recharger |
 | `Alt+←` / `Alt+→` | Précédent / suivant |
 | `Ctrl+Tab` / `Ctrl+Shift+Tab` | Onglet suivant / précédent |
@@ -235,13 +293,18 @@ src/
     bookmarks.js favoris (arbre liens / dossiers, import Chrome / Edge / Brave)
     extensions.js extensions Chrome et Chrome Web Store (session normale uniquement)
     adblock.js   bloqueur de pub intégré (moteur Ghostery, toutes les sessions)
+    mcp.js       serveur MCP local (pilotage par une IA, fenêtre normale uniquement)
     settings.js  lecture / écriture de settings.json
     internal.js  protocole customnav:// des pages internes
+    messengers.js  barre latérale : catalogue, liste personnalisable, panneaux
   preload/
     ui-preload.js        API de l'interface (barre d'onglets / d'outils)
     internal-preload.js  API des pages internes (n'existe que sur customnav://)
+    messengers-rail-preload.js  API de la barre des messageries
+    messenger-preload.js  retour au panneau au clic sur une notification
   renderer/
     index.html, styles.css, renderer.js   interface (onglets, barre d'outils)
+    messengers.html, .css, .js            barre des messageries
   internal/
     home.*, settings.*, bookmarks.*, extensions.*, common.css   pages internes
 build/        icône (icon.svg source, icon.ico, icon.png)

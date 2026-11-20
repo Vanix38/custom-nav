@@ -1,6 +1,7 @@
 // Pages internes (accueil, réglages) servies par le protocole customnav://
 //   customnav://home/      -> src/internal/home.html
 //   customnav://settings/  -> src/internal/settings.html
+//   customnav://history/   -> src/internal/history.html
 //   customnav://bookmarks/ -> src/internal/bookmarks.html
 //   customnav://extensions/ -> src/internal/extensions.html
 //   customnav://<page>/x   -> src/internal/x (css, js partagés)
@@ -10,7 +11,7 @@ const { protocol, net } = require('electron');
 
 const SCHEME = 'customnav';
 const ROOT = path.join(__dirname, '..', 'internal');
-const PAGES = new Set(['home', 'settings', 'bookmarks', 'extensions']);
+const PAGES = new Set(['home', 'settings', 'history', 'bookmarks', 'extensions']);
 
 // À appeler avant app.whenReady(), une seule fois : `extra` ajoute les autres
 // schémas de l'app (registerSchemesAsPrivileged remplace la liste à chaque appel)

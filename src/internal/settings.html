@@ -55,6 +55,30 @@
       <p class="status" id="fav-status" role="status"></p>
     </section>
 
+    <section id="sidebar">
+      <h2>Barre latérale</h2>
+      <label class="check"><input type="checkbox" id="sidebar-visible" />
+        Afficher la barre latérale à gauche de la fenêtre (<kbd>Ctrl+Shift+M</kbd>)</label>
+      <p class="help">Messageries et sites ouverts dans un panneau à côté des onglets. Chaque intégration a sa
+        propre session : tu restes connecté, et « Effacer les données de navigation » ne te déconnecte pas.
+        Une intégration désactivée ne consomme plus rien ; la retirer efface aussi ses données de connexion.</p>
+      <div id="sidebar-list"></div>
+      <p class="status" id="sidebar-status" role="status"></p>
+
+      <h3>Ajouter une intégration</h3>
+      <div id="sidebar-catalog" class="catalog"></div>
+
+      <h3>Ajouter un site personnalisé</h3>
+      <form id="sidebar-custom" class="custom-form">
+        <input type="text" id="custom-name" placeholder="Nom (ex. Notion)" aria-label="Nom" />
+        <input type="text" id="custom-url" placeholder="https://www.notion.so/" aria-label="Adresse" required />
+        <input type="text" id="custom-icon" placeholder="Icône : adresse d'une image (facultatif)" aria-label="Adresse de l'icône" />
+        <button type="submit" class="primary">Ajouter</button>
+      </form>
+      <p class="help small">Sans icône, celle du site est utilisée automatiquement.</p>
+      <p class="status" id="sidebar-add-status" role="status"></p>
+    </section>
+
     <section>
       <h2>Apparence</h2>
       <div class="segmented" role="radiogroup" aria-label="Thème">
@@ -85,17 +109,44 @@
       <p class="status" id="adblock-status" role="status"></p>
     </section>
 
+    <section id="mcp-section">
+      <h2>Pilotage par une IA (MCP)</h2>
+      <label class="check"><input type="checkbox" id="mcp-enabled" />
+        Autoriser une IA (Claude Code, Claude Desktop…) à piloter Custom Nav</label>
+      <p class="help">Un serveur <a href="https://modelcontextprotocol.io/">MCP</a> local permet à l'IA de lister,
+        ouvrir et fermer des onglets, naviguer, lire le texte des pages, faire des captures, cliquer et remplir des
+        champs, et chercher avec tes moteurs et IA. Il n'écoute que sur ton PC (127.0.0.1), exige le jeton
+        ci-dessous et n'a <b>jamais</b> accès aux fenêtres privées. L'IA agit avec tes connexions : n'active ceci que
+        pour une IA en qui tu as confiance.</p>
+      <div id="mcp-details" hidden>
+        <p class="status" id="mcp-state" role="status"></p>
+        <h3>Claude Code</h3>
+        <div class="row copy-row"><code id="mcp-cmd-code"></code><button type="button" data-copy="mcp-cmd-code">Copier</button></div>
+        <h3>Claude Desktop</h3>
+        <p class="help">Dans Paramètres &gt; Développeur &gt; Modifier la configuration
+          (<code>claude_desktop_config.json</code>), ajoute dans <code>mcpServers</code> (nécessite Node.js) :</p>
+        <div class="row copy-row"><pre id="mcp-cmd-desktop"></pre><button type="button" data-copy="mcp-cmd-desktop">Copier</button></div>
+        <div class="row actions">
+          <span class="help">Adresse : <code id="mcp-url"></code></span>
+          <span class="spacer"></span>
+          <button type="button" id="mcp-regen" class="danger">Changer le jeton</button>
+        </div>
+      </div>
+    </section>
+
     <section>
       <h2>Session et données</h2>
       <label class="check"><input type="checkbox" id="restore-tabs" />
         Rouvrir les onglets du dernier lancement</label>
-      <p class="help">Les connexions aux sites (cookies) sont toujours conservées entre les lancements.</p>
+      <p class="help">Les connexions aux sites (cookies) sont toujours conservées entre les lancements.
+        L'historique des pages visitées (hors navigation privée) se gère dans la page
+        <a href="customnav://history/">Historique</a> (<kbd>Ctrl+H</kbd>).</p>
       <div class="row">
         <button type="button" id="clear-data" class="danger">Effacer les données de navigation…</button>
       </div>
       <div class="confirm" id="clear-confirm" hidden>
         <p>Effacer les cookies, le cache et les données des sites ? Tu seras déconnecté de tous les
-          sites (Claude, Google…). Les réglages et les onglets ne sont pas touchés.</p>
+          sites (Claude, Google…). Les réglages, les onglets et l'historique ne sont pas touchés.</p>
         <div class="row">
           <button type="button" id="clear-yes" class="danger primary">Oui, tout effacer</button>
           <button type="button" id="clear-no">Annuler</button>

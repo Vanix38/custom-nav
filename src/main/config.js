@@ -5,6 +5,7 @@ const search = require('./search');
 
 const HOME_PAGE = 'customnav://home/';
 const SETTINGS_PAGE = 'customnav://settings/';
+const HISTORY_PAGE = 'customnav://history/';
 const BOOKMARKS_PAGE = 'customnav://bookmarks/';
 const EXTENSIONS_PAGE = 'customnav://extensions/';
 
@@ -122,7 +123,7 @@ function saveSession(session) {
 }
 
 module.exports = {
-  HOME_PAGE, SETTINGS_PAGE, BOOKMARKS_PAGE, EXTENSIONS_PAGE, load, getConfig, homeUrl,
+  HOME_PAGE, SETTINGS_PAGE, HISTORY_PAGE, BOOKMARKS_PAGE, EXTENSIONS_PAGE, load, getConfig, homeUrl,
   setEngines, resetEngines, setActiveEngine, setHomepage, setTheme, setRestoreTabs, setFavorites, setShowBookmarksBar,
   getLastSession, saveSession,
 };

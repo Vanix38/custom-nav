@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'" />
+  <title>Messageries</title>
+  <link rel="stylesheet" href="messengers.css" />
+</head>
+<body>
+  <nav id="rail" aria-label="Messageries"></nav>
+
+  <!-- Icônes (simplifiées) de chaque messagerie -->
+  <template id="icon-whatsapp">
+    <svg viewBox="0 0 32 32" aria-hidden="true">
+      <circle cx="16" cy="16" r="16" fill="#25d366"/>
+      <path fill="#fff" d="M16 6.5a9.5 9.5 0 0 0-8.2 14.3L6.5 25.5l4.8-1.3A9.5 9.5 0 1 0 16 6.5zm0 2a7.5 7.5 0 1 1-3.9 13.9l-.3-.2-2.4.6.7-2.3-.2-.3A7.5 7.5 0 0 1 16 8.5z"/>
+      <path fill="#fff" d="M12.6 11.6c.2-.4.4-.4.7-.4h.5c.2 0 .4 0 .6.5l.8 1.9c.1.2.1.4 0 .6l-.4.6-.4.4c-.1.1-.2.3 0 .5.5.9 1.1 1.6 1.8 2.2.6.5 1.2.8 1.6 1 .2.1.4.1.5-.1l.7-.9c.2-.2.4-.2.6-.1l1.8.9c.3.1.4.2.4.4 0 .3 0 1-.4 1.5-.4.5-1.3.9-2 .9-.7 0-1.6-.2-3.2-1-1.8-.9-3.2-2.6-3.6-3.2-.4-.6-1-1.6-1-2.6 0-1.1.5-1.6.8-1.9z"/>
+    </svg>
+  </template>
+  <template id="icon-discord">
+    <svg viewBox="0 0 32 32" aria-hidden="true">
+      <rect width="32" height="32" rx="9" fill="#5865f2"/>
+      <path fill="#fff" d="M22.6 10.1a15 15 0 0 0-3.8-1.2l-.5 1a14 14 0 0 0-4.6 0l-.5-1a15 15 0 0 0-3.8 1.2C7 13.7 6.4 17.2 6.7 20.6a15 15 0 0 0 4.6 2.3l1-1.6c-.5-.2-1.1-.5-1.6-.8l.4-.3a10.7 10.7 0 0 0 9.8 0l.4.3c-.5.3-1 .6-1.6.8l1 1.6a15 15 0 0 0 4.6-2.3c.4-4-.6-7.4-2.7-10.5zM12.9 18.5c-.9 0-1.6-.8-1.6-1.8s.7-1.9 1.6-1.9c.9 0 1.6.9 1.6 1.9s-.7 1.8-1.6 1.8zm6.2 0c-.9 0-1.6-.8-1.6-1.8s.7-1.9 1.6-1.9c.9 0 1.6.9 1.6 1.9s-.7 1.8-1.6 1.8z"/>
+    </svg>
+  </template>
+
+  <script src="messengers.js"></script>
+</body>
+</html>
