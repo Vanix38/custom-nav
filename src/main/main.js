@@ -99,6 +99,17 @@ function resendTo(ctx, engineId, typed) {
   ctx.tabs.create({ ...buildEngineTarget(getEngine(engineId), query), query: query || null });
 }
 
+// Écran partagé : ouvre un panneau à droite (barre d'adresse prête, comme
+// pour un nouvel onglet), ou ferme l'écran partagé de l'onglet actif
+function toggleSplit(ctx) {
+  const wasSplit = !!ctx.tabs.splitOf(ctx.tabs.activeId);
+  ctx.tabs.toggleSplit();
+  if (!wasSplit) {
+    ctx.win.webContents.focus();
+    sendToUi(ctx, 'ui:focus-address');
+  }
+}
+
 function openSettings(ctx) {
   ctx.tabs.focusOrCreate(config.SETTINGS_PAGE);
 }
@@ -224,6 +235,8 @@ function runShortcut(ctx, event, input) {
     } else {
       setActiveEngine(engines[digit].id);
     }
+  } else if (ctrl && input.shift && key === 's') {
+    toggleSplit(ctx);
   } else if (ctrl && input.shift && key === 'm') {
     messengers.toggleRail();
   } else if (ctrl && input.shift && key === 'n') {
@@ -294,8 +307,15 @@ function openInitialTabs(ctx, restore) {
     const members = ids.filter((_id, i) => saved[i].group === gi);
     if (members.length && g) ctx.tabs.createGroup(members, { title: g.title || '', color: g.color, collapsed: !!g.collapsed });
   });
+  // indices de l'enregistrement -> onglets rouverts (les adresses invalides sont sautées)
+  const byIndex = new Map(saved.map((t, i) => [last.tabs.indexOf(t), ids[i]]));
+  // écrans partagés
+  for (const sp of Array.isArray(last.splits) ? last.splits : []) {
+    if (!Array.isArray(sp?.tabs)) continue;
+    ctx.tabs.restoreSplit(sp.tabs.map((i) => byIndex.get(i)).filter(Boolean), sp.sizes);
+  }
   // l'onglet actif : de préférence un onglet visible (hors groupe replié)
-  let active = ids[Math.min(last.active || 0, ids.length - 1)];
+  let active = byIndex.get(last.active || 0) ?? ids[ids.length - 1];
   if (!ctx.tabs.isVisible(active)) active = ids.find((id) => ctx.tabs.isVisible(id)) ?? active;
   ctx.tabs.activate(active);
 }
@@ -385,6 +405,9 @@ function createWindow({ isPrivate = false, restore = true } = {}) {
     sendToUi(ctx, 'tabs:state', state);
     if (!isPrivate) saveSessionSoon();
   });
+  // écran partagé : l'interface dessine les séparateurs entre les pages
+  tabs.on('split-layout', (layout) => sendToUi(ctx, 'split:layout', layout));
+  if (!isPrivate) tabs.on('split-resized', saveSessionSoon);
   // Les onglets de la session normale sont visibles des extensions (chrome.tabs)
   tabs.on('tab-created', (tab) => extensions.addTab(tab.view.webContents, win));
   tabs.on('tab-activated', (tab) => extensions.selectTab(tab.view.webContents));
@@ -480,6 +503,21 @@ ipcMain.on('tabs:context-menu', fromUi((ctx, id, x, y) => {
       }]
     : [{ label: "Ajouter l'onglet à un nouveau groupe", click: newGroup }];
   if (tab.groupId) groupItems.push({ label: 'Retirer du groupe', click: () => tabs.removeFromGroup([id]) });
+  // écran partagé
+  const split = [];
+  const group = tabs.splitOf(id);
+  if (id !== tabs.activeId && tabs.canSplitWith(id)) {
+    split.push({ label: "Afficher à côté de l'onglet actif", click: () => tabs.splitWith(id) });
+  }
+  if (group) {
+    split.push(
+      { label: "Retirer de l'écran partagé", click: () => tabs.removeFromSplit(id) },
+      { label: 'Inverser les panneaux', click: () => tabs.swapSplit(id) },
+      { label: "Fermer l'écran partagé", click: () => tabs.unsplit(id) },
+    );
+  } else if (id === tabs.activeId) {
+    split.push({ label: 'Ouvrir un écran partagé', accelerator: 'Ctrl+Shift+S', click: () => toggleSplit(ctx) });
+  }
   Menu.buildFromTemplate([
     { label: 'Nouvel onglet', click: () => newTab(ctx) },
     { label: 'Recharger', click: () => tab.view.webContents.reload() },
@@ -487,6 +525,7 @@ ipcMain.on('tabs:context-menu', fromUi((ctx, id, x, y) => {
     { type: 'separator' },
     ...groupItems,
     { type: 'separator' },
+    ...(split.length ? [...split, { type: 'separator' }] : []),
     { label: 'Fermer', accelerator: 'Ctrl+W', click: () => tabs.close(id) },
     { label: 'Fermer les autres onglets', enabled: others.length > 0, click: () => { tabs.closeMany(others); tabs.activate(id); } },
     { label: 'Fermer les onglets à droite', enabled: right.length > 0, click: () => tabs.closeMany(right) },
@@ -542,6 +581,13 @@ ipcMain.on('groups:context-menu', fromUi((ctx, gid, x, y) => {
   ], x, y);
 }));
 
+// Écran partagé : bouton de la barre d'outils et séparateurs
+ipcMain.on('split:toggle', fromUi((ctx) => toggleSplit(ctx)));
+ipcMain.on('split:resize-start', fromUi(({ tabs }, index) => {
+  if (Number.isInteger(index)) tabs.startResize(index);
+}));
+ipcMain.on('split:reset', fromUi(({ tabs }) => tabs.resetSplitSizes()));
+ipcMain.handle('split:get-layout', fromUi(({ tabs }) => tabs.splitLayout));
 ipcMain.on('nav:go', fromUi(({ tabs }, input) => tabs.navigate(resolveInput(input, activeEngineId()))));
 ipcMain.on('nav:back', fromUi(({ tabs }) => tabs.goBack()));
 ipcMain.on('nav:forward', fromUi(({ tabs }) => tabs.goForward()));
@@ -564,6 +610,7 @@ ipcMain.on('ui:app-menu', fromUi((ctx, x, y) => {
   Menu.buildFromTemplate([
     { label: 'Nouvel onglet', accelerator: 'Ctrl+T', click: () => newTab(ctx) },
     { label: 'Nouvelle fenêtre privée', accelerator: 'Ctrl+Shift+N', click: () => createWindow({ isPrivate: true }) },
+    { label: 'Écran partagé', type: 'checkbox', checked: !!ctx.tabs.splitOf(ctx.tabs.activeId), accelerator: 'Ctrl+Shift+S', click: () => toggleSplit(ctx) },
     { type: 'separator' },
     { label: 'Historique', accelerator: 'Ctrl+H', click: () => openHistory(ctx) },
     { label: 'Favoris', accelerator: 'Ctrl+Shift+O', click: () => openBookmarksManager(ctx) },
@@ -801,6 +848,7 @@ function handleContextMenu(webContents) {
     if (params.linkURL && isHttpUrl(params.linkURL)) {
       items.push(
         { label: 'Ouvrir le lien dans un nouvel onglet', click: () => ctx.tabs.create(params.linkURL, { activate: false }) },
+        { label: "Ouvrir le lien dans l'écran partagé", click: () => ctx.tabs.openInSplit(params.linkURL, ctx.tabs.tabFor(webContents)?.id ?? ctx.tabs.activeId) },
         { label: "Copier l'adresse du lien", click: () => clipboard.writeText(params.linkURL) },
       );
     }
