@@ -1,33 +1,60 @@
-// Barre verticale des messageries : une icône par messagerie avec son badge
+// Barre latérale : une icône par intégration (messagerie ou site) avec son badge
 // de non-lus. Clic : ouvre / ferme le panneau ; clic droit : menu.
 const rail = document.getElementById('rail');
 const buttons = new Map();
 
-function iconFor(id) {
-  const tpl = document.getElementById(`icon-${id}`);
-  return tpl ? tpl.content.cloneNode(true) : document.createTextNode(id[0].toUpperCase());
+// Icône : dessin intégré (WhatsApp, Discord), icône du site mise en cache,
+// sinon première lettre sur la couleur de l'intégration.
+function iconFor(m) {
+  const tpl = m.preset && !m.customIcon ? document.getElementById(`icon-${m.preset}`) : null;
+  if (tpl) return tpl.content.cloneNode(true);
+  if (m.icon) {
+    const img = document.createElement('img');
+    img.className = 'site-icon';
+    img.alt = '';
+    img.src = m.icon;
+    return img;
+  }
+  const letter = document.createElement('span');
+  letter.className = 'letter-icon';
+  letter.textContent = (m.name || '?')[0].toUpperCase();
+  if (m.color) letter.style.background = m.color;
+  return letter;
 }
 
 function buttonFor(m) {
   let btn = buttons.get(m.id);
-  if (btn) return btn;
-  btn = document.createElement('button');
-  btn.className = 'messenger';
-  btn.dataset.id = m.id;
-  btn.appendChild(iconFor(m.id));
-  const badge = document.createElement('span');
-  badge.className = 'badge';
-  badge.hidden = true;
-  btn.appendChild(badge);
-  btn.addEventListener('click', () => window.messengers.toggle(m.id));
-  btn.addEventListener('contextmenu', (e) => {
-    e.preventDefault();
-    window.messengers.contextMenu(m.id);
-  });
-  rail.appendChild(btn);
-  buttons.set(m.id, btn);
+  const iconKey = `${m.preset}|${m.customIcon}|${m.icon}|${m.name}`;
+  if (btn && btn.dataset.iconKey === iconKey) return btn;
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.className = 'messenger';
+    btn.dataset.id = m.id;
+    const icon = document.createElement('span');
+    icon.className = 'icon';
+    btn.appendChild(icon);
+    const badge = document.createElement('span');
+    badge.className = 'badge';
+    badge.hidden = true;
+    btn.appendChild(badge);
+    btn.addEventListener('click', () => window.messengers.toggle(m.id));
+    btn.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      window.messengers.contextMenu(m.id);
+    });
+    buttons.set(m.id, btn);
+  }
+  btn.dataset.iconKey = iconKey;
+  btn.querySelector('.icon').replaceChildren(iconFor(m));
   return btn;
 }
+
+// clic droit ailleurs sur la barre : gérer / masquer la barre
+rail.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  window.messengers.contextMenu('');
+});
 
 // Pastille de la barre des tâches Windows : nombre total de non-lus
 let lastOverlay = null;
@@ -58,8 +85,17 @@ function updateOverlay(total) {
 
 function render(state) {
   let total = 0;
+  const ids = new Set(state.messengers.map((m) => m.id));
+  for (const [id, btn] of buttons) {
+    if (!ids.has(id)) {
+      btn.remove();
+      buttons.delete(id);
+    }
+  }
+  const ordered = state.messengers.map(buttonFor);
+  rail.replaceChildren(...ordered);
   for (const m of state.messengers) {
-    const btn = buttonFor(m);
+    const btn = buttons.get(m.id);
     const { count, dot } = m.unread;
     if (m.enabled) total += count;
     btn.classList.toggle('open', state.openId === m.id);

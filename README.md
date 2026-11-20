@@ -58,7 +58,7 @@ npm start
   développement, paramètres
 - Page de réglages (menu ☰ ou `Ctrl+,`) : moteurs / IA, page d'accueil, raccourcis, thème, session
 - Navigation privée (menu ☰ ou `Ctrl+Shift+N`), voir ci-dessous
-- Messageries intégrées WhatsApp et Discord dans une barre à gauche, voir ci-dessous
+- Barre latérale à gauche : WhatsApp, Discord, Messenger, Telegram, Slack, Spotify… et sites personnalisés, voir ci-dessous
 - Historique (`Ctrl+H`, menu ☰ ou lien en bas de la page d'accueil) : pages visitées groupées par jour, recherche, suppression d'une page, d'une sélection ou d'une période. Rien n'est enregistré en navigation privée ; conservé 90 jours dans `history.json`
 - Outils de développement (les DevTools de Chrome) ancrés à droite de la page : `F12`, `Ctrl+Shift+I`,
   menu ☰, ou clic droit > « Inspecter l'élément »
@@ -160,9 +160,10 @@ d'onglets et au titre de la fenêtre.
   fenêtre privée les enregistre comme d'habitude.
 - `Ctrl+N` ramène la fenêtre normale (ou la rouvre si elle a été fermée).
 
-### Messageries (WhatsApp, Discord)
+### Barre latérale (messageries et sites intégrés)
 
-Une barre verticale à gauche de la fenêtre normale affiche une icône par messagerie :
+Une barre verticale à gauche de la fenêtre normale affiche une icône par intégration
+(WhatsApp et Discord par défaut) :
 
 - **Clic** : ouvre la messagerie dans un panneau à côté de la barre (les onglets se décalent) ;
   nouveau clic, ou `Ctrl+W` dans la messagerie, pour le refermer.
@@ -174,11 +175,23 @@ Une barre verticale à gauche de la fenêtre normale affiche une icône par mess
   désactiver / réactiver, se déconnecter, masquer la barre.
 - `Ctrl+Shift+M` masque / réaffiche la barre.
 
-Les messageries restent chargées en arrière-plan (panneau fermé) pour recevoir messages et
-notifications ; une messagerie désactivée ne consomme plus rien. Chacune a sa propre session
-persistante (`persist:messenger-whatsapp`, `persist:messenger-discord`) : on reste connecté entre
+**Paramètres > Barre latérale** (ou clic droit > « Gérer la barre latérale… ») :
+
+- ajouter une intégration prête à l'emploi : WhatsApp, Discord, Messenger, Telegram, Slack,
+  Instagram, Microsoft Teams, Gmail, Outlook, Google Agenda, X, Snapchat, LinkedIn, Spotify, Deezer,
+  YouTube Music, ChatGPT, Claude ;
+- ajouter un **site personnalisé** : nom, adresse et, si on veut, l'adresse d'une image pour
+  l'icône (sinon l'icône du site est récupérée automatiquement) ;
+- réordonner (▲ ▼), renommer, changer l'adresse, la largeur du panneau, activer / désactiver,
+  afficher ou non le badge de non-lus, retirer (efface aussi les données de connexion).
+
+La liste est enregistrée dans `%APPDATA%\custom-nav\messengers.json` (icônes comprises).
+
+Les intégrations activées restent chargées en arrière-plan (panneau fermé) pour recevoir messages et
+notifications ; une intégration désactivée ne consomme plus rien. Chacune a sa propre session
+persistante (`persist:messenger-<id>`) : on reste connecté entre
 les lancements, et « Effacer les données de navigation » ne vous déconnecte pas. Les liens cliqués
-dans une messagerie s'ouvrent dans un onglet normal. La barre n'existe pas dans les fenêtres privées.
+dans une intégration s'ouvrent dans un onglet normal. La barre n'existe pas dans les fenêtres privées.
 
 Première connexion : WhatsApp demande de scanner un QR code avec le téléphone (WhatsApp >
 Appareils connectés), Discord se connecte par e-mail / mot de passe ou QR code.
@@ -237,7 +250,7 @@ utilisateur de l'app (`%APPDATA%custom-navsettings.json`).
 | `Ctrl+Shift+O` | Gestionnaire de favoris |
 | `Ctrl+N` | Revenir à la fenêtre normale (la rouvre si elle est fermée) |
 | `Ctrl+W` | Fermer l'onglet (dans une messagerie : refermer son panneau) |
-| `Ctrl+Shift+M` | Masquer / afficher la barre des messageries |
+| `Ctrl+Shift+M` | Masquer / afficher la barre latérale |
 | `Ctrl+L` | Aller à la barre d'adresse |
 | `Ctrl+,` | Réglages |
 | `Ctrl+H` | Historique |
@@ -263,7 +276,7 @@ src/
     mcp.js       serveur MCP local (pilotage par une IA, fenêtre normale uniquement)
     settings.js  lecture / écriture de settings.json
     internal.js  protocole customnav:// des pages internes
-    messengers.js  barre et panneaux des messageries (WhatsApp, Discord)
+    messengers.js  barre latérale : catalogue, liste personnalisable, panneaux
   preload/
     ui-preload.js        API de l'interface (barre d'onglets / d'outils)
     internal-preload.js  API des pages internes (n'existe que sur customnav://)

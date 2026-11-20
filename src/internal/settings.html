@@ -55,6 +55,30 @@
       <p class="status" id="fav-status" role="status"></p>
     </section>
 
+    <section id="sidebar">
+      <h2>Barre latérale</h2>
+      <label class="check"><input type="checkbox" id="sidebar-visible" />
+        Afficher la barre latérale à gauche de la fenêtre (<kbd>Ctrl+Shift+M</kbd>)</label>
+      <p class="help">Messageries et sites ouverts dans un panneau à côté des onglets. Chaque intégration a sa
+        propre session : tu restes connecté, et « Effacer les données de navigation » ne te déconnecte pas.
+        Une intégration désactivée ne consomme plus rien ; la retirer efface aussi ses données de connexion.</p>
+      <div id="sidebar-list"></div>
+      <p class="status" id="sidebar-status" role="status"></p>
+
+      <h3>Ajouter une intégration</h3>
+      <div id="sidebar-catalog" class="catalog"></div>
+
+      <h3>Ajouter un site personnalisé</h3>
+      <form id="sidebar-custom" class="custom-form">
+        <input type="text" id="custom-name" placeholder="Nom (ex. Notion)" aria-label="Nom" />
+        <input type="text" id="custom-url" placeholder="https://www.notion.so/" aria-label="Adresse" required />
+        <input type="text" id="custom-icon" placeholder="Icône : adresse d'une image (facultatif)" aria-label="Adresse de l'icône" />
+        <button type="submit" class="primary">Ajouter</button>
+      </form>
+      <p class="help small">Sans icône, celle du site est utilisée automatiquement.</p>
+      <p class="status" id="sidebar-add-status" role="status"></p>
+    </section>
+
     <section>
       <h2>Apparence</h2>
       <div class="segmented" role="radiogroup" aria-label="Thème">
